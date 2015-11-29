@@ -23,6 +23,7 @@ var config    =    require('config');    // Taken from https://www.npmjs.com/pac
 var fs = require('fs');
 
 var authapi = require('./authapi.js');
+var searchapi = require('./searchapi.js');
 
 var dbmethods = require('./dbmethods.js');
 
@@ -326,6 +327,22 @@ function processData(sessionID, socket, dataHash) {
 }
 
 
+/*
+ * To perform an autocomplete on a client name to start or add to a conversation
+ *
+*/
+function clientNameSearch(sessionID, socket, dataHash) {
+  var term = null;
+  if("term" in dataHash) {
+    term = dataHash.term;
+  }
+
+  searchapi.searchClientNameAPI(sessionID, term, function(err, returndata) {
+    logger.info("Callback has been completed");
+  });
+
+}
+
 
 app.get('/', function(req, res){
   res.sendfile('index.html');
@@ -357,6 +374,12 @@ io.on('connection', function(socket) {
       searchSessionID(jsessionID, socket, dataHash, processData);
     }
 
+  });
+ 
+
+  socket.on('clientlookup', function(dataHash, jsessionID) {
+    logger.info("Have just got an autocomplete request: " + JSON.stringify(dataHash));
+    clientNameSearch(jsessionID, socket, dataHash);
   });
 
 

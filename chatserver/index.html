@@ -106,6 +106,8 @@
   <link rel="stylesheet" href="css/tannfefrontbootstrap.css">
   <link rel="stylesheet" href="css/font-awesome.min.css">
 
+  <link rel="stylesheet" href="css/jquery-ui-1.11.4.min.css">
+
   <script src="/socket.io/socket.io.js"></script>
   <!--
   <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
@@ -114,8 +116,10 @@
   <script src="js/socket.io-1.2.0.js"></script>
   <script src="js/jquery-1.11.1.js"></script>
 
+  <script src="js/jquery-ui-1.11.4.min.js"></script>
+
   <!-- Taken from https://github.com/ro31337/jquery.ns-autogrow -->
-  <script src="js/jquery.ns-autogrow.min.js"></script>
+  <!--<script src="js/jquery.ns-autogrow.min.js"></script>-->
 
   <script>
 
@@ -244,10 +248,33 @@
       });
 
 
-      // How to do autocomplete with jquery and socket.io    http://stackoverflow.com/questions/18596053/jquery-ui-autocomplete-websockets-implementation
-     $('#newhaciendainvitees').autocomplete({
+      $("#newhaciendainvitees").on('focus',function() {
 
-     });
+        // How to do autocomplete with jquery and socket.io    
+        // http://stackoverflow.com/questions/18596053/jquery-ui-autocomplete-websockets-implementation
+        $('#newhaciendainvitees').autocomplete({
+          width: 300,
+          max: 10,
+          delay: 500,
+          minLength: 3,
+          autoFocus: true,
+          cacheLength: 1,
+          scroll: true,
+          highlight: false,
+          source: function(request, response) {
+            var term = request.term;
+            var jsessionID = null;
+            jsessionID = GetCookie('JSESSIONID');
+            console.log("Clicked the submit function with cookie: " + jsessionID);
+            //socket.emit('message', "james", $('#m').val(), jsessionID);
+            var dataHash = {};
+            dataHash["term"] = term;
+        
+            socket.emit('clientlookup', dataHash, jsessionID);
+            //socket.send(term);
+          }
+        });
+      });
 
     });
   </script>
