@@ -3,17 +3,14 @@ module.exports = {
 
   insertChatSession: function(jsessionid, clientID, callback) {
     
-    pool.getConnection(function(err,connection){
+    pool.getConnection(function(err,connection) {
       if (err) {
-        connection.release();
-        res.json({"code" : 100, "status" : "Error in connection database"});
+        logger.info("Error, unable to get database connection");
+        var res = {"code" : 100, "status" : "Error in connection database"};
+        callback(true, res);
         return;
       }   
 
-      //if(chatdbconfig.debug) {
-        logger.debug('connected as id ' + connection.threadId);
-      //}
-        
       connection.query('INSERT INTO chatsessions (jsessionid, clientID, expiretime) VALUES (?,?,(now() + INTERVAL ? SECOND))', [jsessionid, clientID, sessionConfig.maxagesecs], function(err,result) {
         connection.release();
         if(!err) {
@@ -23,31 +20,30 @@ module.exports = {
         else {
           logger.error("Error inserting chatsession into db: " + err);
           callback(true, err);
+          return;
         }
       });
 
       connection.on('error', function(err) {      
-        res.json({"code" : 100, "status" : "Error in connection database"});
-        //return;     
+        var res = {"code" : 100, "status" : "Error in connection database"};
         callback(true, res);
+        return;
       });
 
     });
-  }
+  },
 
 
-  /*
-   * Function to associate a chat session with a server, should only be used when a new connection is established
-   * chatserverID - ID of the server
-   * chatsessionID - ID of the chat session
-   */
+  // Function to associate a chat session with a server, should only be used when a new connection is established
+  // chatserverID - ID of the server
+  // chatsessionID - ID of the chat session
   insertSessionServer: function(chatserverID, chatsessionID, callback) {
     
     pool.getConnection(function(err,connection){
 
       if (err) {
-        connection.release();
-        res.json({"code" : 100, "status" : "Error in connection database"});
+        var res = {"code" : 100, "status" : "Error in connection database"};
+        callback(true, res);
         return;
       }   
 
@@ -59,53 +55,56 @@ module.exports = {
             connection.release();
             if(!err) {
               var sessionserverID = result.insertId;    // key for the record that has just been inserted
-              callback(false, sessionserverD);
+              callback(false, sessionserverID);
+              return;
             }           
             else {
               logger.error("Error inserting session server into db: " + err);
               callback(true, err);
+              return;
             }
           });
         }
 
         connection.on('error', function(err) {      
-          res.json({"code" : 100, "status" : "Error in connection database"});
-          //return;     
+          var res = {"code" : 100, "status" : "Error in connection database"};
           callback(true, res);
+          return;
         });
 
       });
 
     });
-  }
+  },
 
-  /*
-   * Query the database for a sessionID details
-  /*
+
+  // Query the database for a sessionID details
   querySessionID: function(jsessionid, callback) {
 
-    pool.getConnection(function(err,connection){
+    pool.getConnection(function(err,connection) {
       if (err) {
-        connection.release();
-        res.json({"code" : 100, "status" : "Error in connection database"});
+        var res = {"code" : 100, "status" : "Error in connection database"};
         return;
       }   
 
-      connection.query('SELECT chatsessionid,jsessionid, adminID, created, expiretime FROM chatsessions WHERE jsessionid = ?, [jsessionid], function(err, rows) {
+      connection.query('SELECT chatsessionid,jsessionid, clientID, created, expiretime FROM chatsessions WHERE jsessionid = ?', [jsessionid], function(err, rows) {
         connection.release();
         if(!err) {
           var connectionDetails = {};
           callback(false, rows);
+          return;
         }
         else {
           logger.error("Error querying database for sessionID information: " + err);
           callback(true, err);
+          return;
         }
       });
 
       connection.on('error', function(err) {      
-        res.json({"code" : 100, "status" : "Error in connection database"});
-        callbacy(true, res);
+        var res = {"code" : 100, "status" : "Error in connection database"};
+        callback(true, res)
+        return;
       });
 
     });

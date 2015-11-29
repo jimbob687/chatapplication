@@ -43,7 +43,7 @@ var fedDbConfig = config.get('feddb.dbConfig');
 global.fedpool   =    mysql.createPool(fedDbConfig);
 */
 
-global sessionConfig = config.get('session');
+global.sessionConfig = config.get('session');
 
 var expressConfig = config.get('express');
 
@@ -75,6 +75,7 @@ socketcontroller.on('connect', function(socketcontroller) {
 
 
 
+/*
 function handle_database(from,msg) {
     
   pool.getConnection(function(err,connection) {
@@ -104,6 +105,7 @@ function handle_database(from,msg) {
 
   });
 }
+*/
 
 
 // queryProfileAPI: function(username, password, jesessionid, callback)
@@ -230,16 +232,19 @@ function adminProfile(sessionID, socket) {
 
 }
 
+
 /*
  * Function to get the details of the session from the db based on the sessionID that has been receieved
  * sessionID - JSESSIONID that has been received
  * socket - socket that the connection is for
  */
-function searchSessionID(sessionID, socket) {
+function searchSessionID(sessionID, socket, dataHash, callback) {
 
+  // query the db for the details of the sessionID
   dbmethods.querySessionID(sessionID, function(err, rows) {
 
     if(!err) {
+      logger.info("Have got: " + rows.length + " rows for sessionID: " + sessionID);
       if(rows == null) {
 
       }
@@ -251,6 +256,7 @@ function searchSessionID(sessionID, socket) {
         // should only have max 1 row returned, this is an error
       }
       else if(rows.length == 1) {
+        var clientID = rows[0].clientID;  // get the clientID that was returned
         // add the sessionID to the hash
         socketSessionHash[sessionID] = clientID;
 
@@ -266,13 +272,59 @@ function searchSessionID(sessionID, socket) {
         
         if("clientID" in resultRow) {
           socketClientHash[resultRow.clientID] = clientHash;
+          if(socket != null) {
+            logger.debug("Setting the socket clientid: " + resultRow.clientID);
+            socket.clientid = resultRow.clientID;     // add the clientID to to the socket
+          }
         }
+        else {
+          logger.info("Unable to find the clientID");
+        }
+        callback(sessionID, socket, dataHash);    // send off to get processed
       }
     }
 
   });
 
 }
+
+
+/*
+ * Process a message that has been received
+*/
+function processMessage(sessionID, socket, dataHash) {
+  var message = null;
+  if("message" in dataHash) {
+    message = dataHash.message;
+  }
+  
+  // This will send to message back to the client
+  io.emit('chat message', dataHash.message);
+}
+
+
+/*
+ * Function to process the incoming message, is assumed that we know who the socket belongs to
+ * sessionID - the JSESSIONID 
+ * socket - socket of the server
+ * dataHash - Hash of the session
+*/
+function processData(sessionID, socket, dataHash) {
+
+  logger.info("In processData");
+
+  if("type" in dataHash) {
+    if(dataHash.type == "message") {
+      logger.debug('processing a message');
+      processMessage(sessionID, socket, dataHash);
+    }
+    else {
+      logger.error("Error, unrecognized datatype: " + dataHash.type);
+    }
+  }
+
+}
+
 
 
 app.get('/', function(req, res){
@@ -291,45 +343,28 @@ app.post("/login", function(req, res) {
 io.on('connection', function(socket) {
   logger.debug('a user connected');
 
-  socket.on('message', function(message) {
+  socket.on('data', function(dataHash, jsessionID) {
+    logger.info("dataHash: " + JSON.stringify(dataHash));
+
     // Adapted from the following link to be able to send a cookie thru when connecting. 
     // http://stackoverflow.com/questions/4753957/socket-io-authentication
-    logger.debug("Have received a message: " + JSON.stringify(message));
-    if(message.JSESSIONID) {
-      logger.debug("JSESSIONID: " + message.JSESSIONID);
-      if!(message.JSESSIONID in socketHash) {
-        // create a Hash with the socket ID in it and add it to the socketHash, this is so we can track sessionIDs vs sockets in the future
-        var starterHash = {};
-        starterHash["session"] = socket
-        socketHash[message.JSESSIONID] = starterHash;
-      }
+    if("clientid" in socket) {
+      logger.info("clientid of socket: " + socket.clientid);
+      processData(sessionID, socket, dataHash);
     }
-    if(message.rediskey) {
-      logger.debug("rediskey: " + message.rediskey);
-      // set the key of the socket
-      socket.rediskey = message.rediskey;
+    else {
+      logger.debug("Socket doesn't have a clientid so need to get from the db");
+      searchSessionID(jsessionID, socket, dataHash, processData);
+    }
 
-      // Add the socket to the hash
-      socketHash[message.rediskey] = socket;
-    }
   });
+
 
   socket.on('disconnect', function(){
     logger.debug('user disconnected');
   });
 
-  socket.on('data', function(from, msg, jsessionID){
-    // var jessionID = null;
-    // if("JSESSIONID" in data) {
-    //   jsessionID = data.JSESSIONID;
-    // }
-    logger.debug('message: ' + msg + " from: " + from + " JSESSIONID: " + jsessionID);
-    //logger.debug('message: ' + msg + " from: " + from);
-    io.emit('chat message', msg);
-    handle_database(from,msg);
-    // Get the key of the socket
-    logger.debug('Chat message by ', socket.rediskey);
-  });
+
 });
 
 

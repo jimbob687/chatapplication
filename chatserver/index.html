@@ -70,8 +70,35 @@
         color: gray; 
       }
 
+      .cancelbtn {
+	height: 15px;
+        border: none;
+        margin: 1px;
+        background-color: transparent;
+        cursor: pointer;
+        font-size: 11px !important;
+        color: red;
+      }
+
       .addbtn:hover {
         color: green;
+      }
+
+      .chattextarea {
+        width: 100%;
+        min-width: 50%;
+        resize: none;
+
+        display:block;
+        box-sizing: padding-box;
+        overflow:hidden;
+
+        padding:10px;
+        /* width:250px; */
+        font-size:14px;
+        margin:50px auto;
+        /* border-radius:8px;
+        border:6px solid #556677; */
       }
 
     </style>
@@ -86,6 +113,9 @@
   -->
   <script src="js/socket.io-1.2.0.js"></script>
   <script src="js/jquery-1.11.1.js"></script>
+
+  <!-- Taken from https://github.com/ro31337/jquery.ns-autogrow -->
+  <script src="js/jquery.ns-autogrow.min.js"></script>
 
   <script>
 
@@ -116,19 +146,29 @@
         socket.send({JSESSION: jsessionID});
       });
 
+      /*  Believe this is now deprecated
       $('form').submit(function(){
         var jessionID = GetCookie('JSESSIONID'); //http://msdn.microsoft.com/en-us/library/ms533693(v=vs.85).aspx
         socket.emit('message', { message: $('#m').val(), JSESSIONID: jsessionID });
         $('#m').val('');
         return false;
       });
+      */
 
       $('#submitbtn').on('click', function(){
         var jsessionID = null;
         jsessionID = GetCookie('JSESSIONID');
         console.log("Clicked the submit function with cookie: " + jsessionID);
-        socket.emit('data', "james", $('#m').val(), jsessionID);
-        $('#m').val('');
+        //socket.emit('message', "james", $('#m').val(), jsessionID);
+        var dataHash = {};
+        dataHash["type"] = "message";
+        dataHash["message"] = $('#m').val();
+        dataHash["to"] = "TBD";
+        
+        socket.emit('data', dataHash, jsessionID);
+
+        // socket.emit('data', "james", $('#m').val(), jsessionID);    Deprecated due to now using a hash
+        $('#m').val('');  // clear the value box
         return false;
       });
 
@@ -170,6 +210,45 @@
         });
       });
 
+
+      $("#addhaciendabtn").on("click", function() {
+        if(!$("#newhaciendadiv").is(":visible")) {
+          $("#newhaciendadiv").show(); 
+          $(this).hide();   // hide the button
+        }
+      });
+
+      $("#newhaciendacancelbtn").on("click", function() {
+        $("#newhaciendadiv").hide(); 
+        $("#addhaciendabtn").show();   // hide the button
+      });
+
+      // automatically make the textarea larger
+      //$('#newhaciendainvitees').autogrow({vertical: true, horizontal: false});
+  
+
+      // To autoexpand text area, taken from http://codepen.io/vsync/pen/frudD
+      $('#newhaciendainvitees').one('focus', function(){
+        var savedValue = this.value;
+        this.value = '';
+        this.baseScrollHeight = this.scrollHeight;
+        this.value = savedValue;
+      });
+
+      $('#newhaciendainvitees').one('input', function(){
+        var minRows = this.getAttribute('data-min-rows')|0, rows;
+        this.rows = minRows;
+        console.log(this.scrollHeight , this.baseScrollHeight);
+        rows = Math.ceil((this.scrollHeight - this.baseScrollHeight) / 17);
+        this.rows = minRows + rows;
+      });
+
+
+      // How to do autocomplete with jquery and socket.io    http://stackoverflow.com/questions/18596053/jquery-ui-autocomplete-websockets-implementation
+     $('#newhaciendainvitees').autocomplete({
+
+     });
+
     });
   </script>
   <body>
@@ -205,7 +284,7 @@
     </div>
 
 
-    <div id="covwindow" class="chatdiv"  style="width: 20%; min-width: 200px;">
+    <div id="covwindow" class="chatdiv"  style="width: 200px;">
     
       <div id="haciendadiv" style="width: 180px; float: left; margin-bottom: 10px;">
 
@@ -217,6 +296,27 @@
               <i class="fa fa-plus-square-o fa-2x"></i>
             </button>
           </div>
+
+        </div>
+ 
+        <div id="newhaciendadiv" style="width: 100%; float: left; display: none; border-width: 1px; border-style: solid; border-radius: 2px; padding: 2px;">
+
+          <div id="newhaciendacancel" style="width: 100%; float: left;">
+            <button id="newhaciendacancelbtn" class="cancelbtn" style="float: right">
+              <i class="fa fa-times-circle fa-lg"></i>
+            </button>
+          </div>
+
+          <div id="newhaciendaname" style="width: 100%; float: left;">
+            <label id="newhaciendanamelabel" style="width: 100%; float: left;">Name</label>
+            <input type="text" id="newhaciendanameinput" name="newhaciendanameinput" style="width: 100%; float: left;">
+          </div>
+
+          <div>
+            <label id="newhaciendainviteeslabel" style="width: 100%; float: left;">Name</label>
+            <textarea id="newhaciendainvitees" class="chattextarea" rows="1" spellcheck="false" autocomplete="false" autocapitalize="off" autocorrect="off"></textarea>   
+          </div>
+ 
 
         </div>
 

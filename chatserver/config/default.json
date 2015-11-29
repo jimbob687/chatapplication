@@ -33,7 +33,7 @@
     "verbose": false
   },
 
-  "sessions": {
+  "session": {
     "maxagesecs": 3600
   },
 
