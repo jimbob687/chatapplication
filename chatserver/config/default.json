@@ -1,0 +1,50 @@
+{
+  // Customer module configs
+  "chatdb": {
+    "dbConfig": {
+      "connectionLimit" : 10,
+      "host"     : "host_addr",
+      "user"     : "username",
+      "password" : "password",
+      "database" : "db_name",
+      "debug"    :  false
+    }
+  },
+  "feddb": {
+    "dbConfig": {
+      "connectionLimit" : 10,
+      "host"     : "host_addr",
+      "user"     : "username",
+      "password" : "password",
+      "database" : "db_name",
+      "debug"    :  false
+    }
+  },
+
+  "apiserver": {
+    "serverhostname": "www.example.com",
+    "serverport": 443,
+    "protocol": "https",
+    "authpath": "/auth/AdminApiAuth.do",
+    "profilepath": "/admin/AdminChatProfile.do"
+  },
+
+  "request": {
+    "verbose": false
+  },
+
+  "sessions": {
+    "maxagesecs": 3600
+  },
+
+  "express": {
+     "port": 3000
+   },
+
+   "controller": {
+     "serverhostname": "www.example.com",
+     "serverport": 443,
+     "protocol": "https"
+   }
+
+}
