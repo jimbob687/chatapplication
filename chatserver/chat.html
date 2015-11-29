@@ -1,0 +1,93 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <style>
+      * { 
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body { 
+        font: 13px Helvetica, Arial; 
+      }
+      form { 
+        background: #000;
+        padding: 3px;
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+      }
+
+      form input { 
+        border: 0;
+        padding: 10px; 
+        width: 90%; 
+        margin-right: .5%; 
+      }
+
+      form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+      #submitform { 
+        background: #000; 
+        padding: 3px; 
+        position: fixed; 
+        bottom: 0; 
+        width: 50%;
+        float: left;
+      }
+      #submitform input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+      #submitform button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+      #messages { list-style-type: none; margin: 0; padding: 0; }
+      #messages li { padding: 5px 10px; }
+      #messages li:nth-child(odd) { background: #eee; }
+
+      .chatdiv {
+        width: 50%;
+        float: left;
+      }
+    </style>
+  </head>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+  <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+  <script>
+    $( document ).ready(function() {
+      var socket = io();
+      socket.on('connect', function() {
+        //var rediskey = GetCookie('rediskey'); //http://msdn.microsoft.com/en-us/library/ms533693(v=vs.85).aspx
+        // This will generate a random number and send it, this is only a test for when users are properly setup
+        var max = 500, min = 10;
+        var redisKey = Math.random() * (max - min) + min;
+        socket.send({rediskey: redisKey});
+      });
+      $('form').submit(function(){
+        socket.emit('chat message', $('#m').val());
+        $('#m').val('');
+        return false;
+      });
+      $('#submitbtn').on('click', function(){
+        console.log("Clicked the submit function");
+        socket.emit('chat message', "james", $('#m').val());
+        $('#m').val('');
+        return false;
+      });
+      socket.on('chat message', function(msg){
+        $('#messages').append($('<li>').text(msg));
+      });
+    });
+  </script>
+  <body>
+    <div id="chatwindow" class="chatdiv">
+      <ul id="messages"></ul>
+      <div id="submitform">
+        <input id="m" autocomplete="off" /><button id="submitbtn">Send</button>
+      </div>
+    </div>
+
+    <!-- To keep information about rooms that the user is in -->
+    <div id="convwindow" class="chatdiv">
+
+    </div>
+
+  </body>
+</html>

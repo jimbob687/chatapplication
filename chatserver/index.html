@@ -1,0 +1,253 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <style>
+      * { 
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body { 
+        font: 13px Helvetica, Arial; 
+      }
+      form { 
+        background: #000;
+        padding: 3px;
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+      }
+
+      form input { 
+        border: 0;
+        padding: 10px; 
+        width: 90%; 
+        margin-right: .5%; 
+      }
+
+      form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+      #submitform { 
+        background: #000; 
+        padding: 3px; 
+        position: fixed; 
+        bottom: 0; 
+        width: 50%;
+        float: left;
+      }
+      #submitform input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+      #submitform button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+      #messages { list-style-type: none; margin: 0; padding: 0; }
+      #messages li { padding: 5px 10px; }
+      #messages li:nth-child(odd) { background: #eee; }
+
+      .chatdiv {
+        height: 100%;
+        float: left;
+        postion: relative;
+      }
+
+      .chatheading {
+        width: 80%;
+        float: left;
+      }
+
+      .addbtndiv {
+        /*position: absolute;
+        bottom: 0;
+        right: 0;*/
+        float: right;
+      }
+
+      .addbtn {
+	height: 15px;
+	padding: 7px 0 0 0;
+	border: none;
+	margin: 1px;
+	background-color: transparent;
+	cursor: pointer;
+	font-size: 11px !important;
+        color: gray; 
+      }
+
+      .addbtn:hover {
+        color: green;
+      }
+
+    </style>
+  </head>
+  <link rel="stylesheet" href="css/tannfefrontbootstrap.css">
+  <link rel="stylesheet" href="css/font-awesome.min.css">
+
+  <script src="/socket.io/socket.io.js"></script>
+  <!--
+  <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+  <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+  -->
+  <script src="js/socket.io-1.2.0.js"></script>
+  <script src="js/jquery-1.11.1.js"></script>
+
+  <script>
+
+    // function to get a cookie
+    function GetCookie(cookieName) {
+      // cookies are separated by semicolons
+      var aCookie = document.cookie.split("; ");
+      for (var i=0; i < aCookie.length; i++) {
+        // a name/value pair (a crumb) is separated by an equal sign
+        var aCrumb = aCookie[i].split("=");
+        if (cookieName == aCrumb[0]) 
+          return unescape(aCrumb[1]);
+      }
+      // a cookie with the requested name does not exist
+      return null;
+    }
+
+    $( document ).ready(function() {
+
+      var socket = io();
+      socket.on('connect', function() {
+        var jessionID = null;
+        jsessionID = GetCookie('JSESSIONID'); //http://msdn.microsoft.com/en-us/library/ms533693(v=vs.85).aspx
+        console.log("Cookie: " + jsessionID);
+        // This will generate a random number and send it, this is only a test for when users are properly setup
+        // var max = 500, min = 10;
+        // var redisKey = Math.random() * (max - min) + min;
+        socket.send({JSESSION: jsessionID});
+      });
+
+      $('form').submit(function(){
+        var jessionID = GetCookie('JSESSIONID'); //http://msdn.microsoft.com/en-us/library/ms533693(v=vs.85).aspx
+        socket.emit('message', { message: $('#m').val(), JSESSIONID: jsessionID });
+        $('#m').val('');
+        return false;
+      });
+
+      $('#submitbtn').on('click', function(){
+        var jsessionID = null;
+        jsessionID = GetCookie('JSESSIONID');
+        console.log("Clicked the submit function with cookie: " + jsessionID);
+        socket.emit('data', "james", $('#m').val(), jsessionID);
+        $('#m').val('');
+        return false;
+      });
+
+      socket.on('chat message', function(msg){
+        $('#messages').append($('<li>').text(msg));
+      });
+
+      $("#adminloginbtn").on('click', function(){
+		
+        $("#loginerrordiv").empty();
+		
+        $("#adminloginbtn").prop("disabled", true);
+		
+        var userName = $("#sUserName").val();
+        var passWord = $("#sPwd").val();
+
+        $.ajax({
+          url: "login",
+          type: 'post',
+          dataType: 'json',
+          data: {
+            username : userName,
+            password : passWord, 
+          },    	
+          success: function(data) {				
+            //$("#adminloginbtn").prop("disabled", false);				
+            $("#loginsuccessform").submit();  
+          },
+          error: function(jqXHR, status, error) {
+            console.log("Login failure");
+            $("#sPwd").val('');
+            $("#adminloginbtn").prop("disabled", false);
+            var err = jqXHR.responseText;
+            var errArray = JSON.parse(err);
+            if("message" in errArray) {
+              addErrorMessage(errArray.message);
+            }
+          }			
+        });
+      });
+
+    });
+  </script>
+  <body>
+
+    <!-- To keep information about rooms that the user is in -->
+    <div id="convwindow" class="chatdiv" style="width: 30%;">
+
+      <div id="loginform" class="tannfeloginform">
+        <div id="loginerrordiv" class="tannfeerrordiv" style="width: 250px; height: 20px; float:left;" ></div>
+	
+        <span style="margin: 0 auto; display: inline-block; margin: 10px 5px 10px 5px;">
+				
+          <div class="tannfeloginlabeldiv" ><label for="sUserName" class="tannfeloginlabel" >User Name</label></div>
+          <div class="tannfelogintextdiv" >
+            <input type="text" id="sUserName" name="sUserName" class="tannfelogintext" spellcheck="false"/>
+          </div> 
+			
+          <div class="tannfeloginlabeldiv" ><label for="sPwd" class="tannfeloginlabel" >Password</label></div>
+          <div class="tannfelogintextdiv" ><input type="password" id="sPwd" name="sPwd" class="tannfelogintext" /></div>
+			
+          <div class="tannfeloginlabeldiv" ><input type="checkbox" name="sRememberMe" value="true"></div>
+          <div class="tannfeloginlabeldiv" ><label for="sRememberMe" class="tannfeloginlabel" >Remember Me</label></div>
+
+          <div class="tannfeloginhelpdiv"><a rel="nofollow" href="logonassistance.jsp">Trouble logging in?</a></div>
+
+          <button id="adminloginbtn" class="btn btn-success" type="submit" style="position: relative; margin-top: 10px; margin-bottom: 10px; float: right; margin-right: 0;">
+            <span>Login</span>
+          </button>
+        </span>
+
+      </div>
+
+    </div>
+
+
+    <div id="covwindow" class="chatdiv"  style="width: 20%; min-width: 200px;">
+    
+      <div id="haciendadiv" style="width: 180px; float: left; margin-bottom: 10px;">
+
+        <div id="haciendatitle" style="float: left; width: 100%; position: relative; height: 28px;">
+          <h4 class="chatheading" style="margin-top: 5px; margin-bottom: 8px;">Haciendas</h4>
+
+          <div class="addbtndiv">
+            <button id="addhaciendabtn" class="addbtn">
+              <i class="fa fa-plus-square-o fa-2x"></i>
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div id="contactwindow" style="width: 180px; float: left;">
+    
+        <div id="contacttitle" style="float: left; width: 100%; position: relative; height: 28px;">
+          <h4 class="chatheading">Contacts</h4>
+
+          <div class="addbtndiv">
+            <button id="addcontactbtn" class="addbtn">
+              <i class="fa fa-plus-square-o fa-2x"></i>
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+
+
+    </div>
+
+
+    <div id="chatwindow" class="chatdiv" style="width: 50%;">
+      <ul id="messages"></ul>
+      <div id="submitform">
+        <input id="m" autocomplete="off" /><button id="submitbtn">Send</button>
+      </div>
+    </div>
+
+  </body>
+</html>
