@@ -101,6 +101,54 @@
         border:6px solid #556677; */
       }
 
+
+      .tannfeemailaddrdiv {
+        display: block;
+        float: left;
+        border-color: gray;
+        border-spacing: 0;
+        border: 1px solid #d9d9d9;
+        margin-right: 5px;
+      }
+
+      .tannfeemailaddrspan {
+	display: inline;
+	height: 20px;
+	float: left;
+	background-color: #f5f5f5;
+	border-radius: 3px;
+      }
+
+      .tannfeemailaddrdivlabel {
+	clear: both;
+	width: 20px;
+	height: 16px;
+	/*min-height: 14px;*/
+	/*max-height: 14px;*/
+	float: relative;
+	font-size: 12px;
+      }
+
+      .tannfeemailaddrremove {
+	display: inline;
+	height: 20px;
+	width: 10px;
+	float: left;
+	background-color: #f5f5f5;	
+	border-radius: 3px;
+	padding-left: 5px;
+      }
+
+      .tannfeemailaddrrx {
+	font-size: 10px;
+	opacity: 0.7;
+      }
+
+      .tannfeemailaddrrx:hover {
+	cursor: pointer;
+	cursor: hand;
+      }
+
     </style>
   </head>
   <link rel="stylesheet" href="css/tannfefrontbootstrap.css">
@@ -178,6 +226,22 @@
 
       socket.on('chat message', function(msg){
         $('#messages').append($('<li>').text(msg));
+      });
+
+      var pendingAutoComplete = {};
+      socket.on('clientautocomplete', function(returnData){
+        console.log("autocomplete return: " + JSON.stringify(returnData));
+        var randomHash = null;
+        if("randomhash" in returnData) {
+          randomHash = returnData.randomhash;
+          console.log("randomHash: " + randomHash);
+        }
+ 
+        if(randomHash in pendingAutoComplete) {
+          var autocompleteResponse = pendingAutoComplete[randomHash];
+          var data = returnData.data;
+          autocompleteResponse(data);
+        }
       });
 
       $("#adminloginbtn").on('click', function(){
@@ -262,16 +326,64 @@
           scroll: true,
           highlight: false,
           source: function(request, response) {
+            // This is to identify the response
+            var randomHash = Math.random().toString(36).substring(7);
+            console.log("random hash: " + randomHash);
+
             var term = request.term;
             var jsessionID = null;
             jsessionID = GetCookie('JSESSIONID');
-            console.log("Clicked the submit function with cookie: " + jsessionID);
+            console.log("Clicked the autocomplete function with cookie: " + jsessionID);
             //socket.emit('message', "james", $('#m').val(), jsessionID);
             var dataHash = {};
+            dataHash["randomhash"] = randomHash;
             dataHash["term"] = term;
         
             socket.emit('clientlookup', dataHash, jsessionID);
             //socket.send(term);
+            pendingAutoComplete[randomHash] = response;
+          },
+          select: function( event, ui) {
+            console.log("Just selected a record");
+            console.log("ui: " + JSON.stringify(ui));
+            
+            var itemHash = null;
+            var chatName = null; // name of person who we want to chat with
+            var chatNameID = null; // Is of the admin who we want to chat with
+            if("item" in ui) {
+              itemHash = ui.item;
+              if("label" in itemHash) {
+                chatName = itemHash.label;
+              }
+              if("id" in itemHash) {
+                chatNameID = itemHash.id;
+              }
+            }
+            var emailID = "1";
+            var emailAddr = "something random";
+
+            var emailaddrdiv = document.createElement('div');
+            emailaddrdiv.setAttribute('id', chatNameID);
+            emailaddrdiv.className = 'tannfeemailaddrdiv';
+            document.getElementById("newhaciendainviteesdiv").appendChild(emailaddrdiv);
+
+    
+            // <div class="progress progress-striped active" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+            var emailaddrspan = document.createElement('span');
+            emailaddrspan.setAttribute('email', emailAddr);
+            emailaddrspan.setAttribute('chatadminid', chatNameID);
+            emailaddrspan.className = 'tannfeemailaddrspan';
+            emailaddrspan.style.width = "auto";
+            emailaddrspan.innerHTML = chatName;
+            emailaddrdiv.appendChild(emailaddrspan);
+    
+            var emailaddrremove = document.createElement('div');
+            emailaddrremove.className = 'tannfeemailaddrremove';
+            emailaddrremove.innerHTML = '<div class="tannfeemailaddrrx">x</div>';
+            emailaddrdiv.appendChild(emailaddrremove);
+
+            $("#newhaciendainvitees").val('');
+            return false;     // we don't want the entry in the textarea
           }
         });
       });
@@ -341,7 +453,9 @@
 
           <div>
             <label id="newhaciendainviteeslabel" style="width: 100%; float: left;">Name</label>
-            <textarea id="newhaciendainvitees" class="chattextarea" rows="1" spellcheck="false" autocomplete="false" autocapitalize="off" autocorrect="off"></textarea>   
+            <div id="newhaciendainviteesdiv" style="width: 100%; float: left;">
+              <textarea id="newhaciendainvitees" class="chattextarea" rows="1" spellcheck="false" autocomplete="false" autocapitalize="off" autocorrect="off"></textarea>   
+            </div>
           </div>
  
 

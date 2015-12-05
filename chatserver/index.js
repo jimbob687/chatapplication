@@ -75,40 +75,6 @@ socketcontroller.on('connect', function(socketcontroller) {
 });
 
 
-
-/*
-function handle_database(from,msg) {
-    
-  pool.getConnection(function(err,connection) {
-    if (err) {
-      connection.release();
-      res.json({"code" : 100, "status" : "Error in connection database"});
-      return;
-    }   
-
-    logger.debug('connected to db as id ' + connection.threadId);
-        
-    connection.query("select * from users",function(err,rows){
-      connection.release();
-      if(!err) {
-        //res.json(rows);
-        logger.debug(rows);
-      }           
-      else {
-        logger.error("Error querying db: " + err);
-      }
-    });
-
-    connection.on('error', function(err) {      
-      res.json({"code" : 100, "status" : "Error in connection database"});
-      return;     
-    });
-
-  });
-}
-*/
-
-
 // queryProfileAPI: function(username, password, jesessionid, callback)
 
 function authClient(username, password, req, res) {
@@ -172,6 +138,7 @@ function insertDbSessionID(sessionID, clientID) {
   });
 
 }
+
 
 /*
  * Get the admin profile information
@@ -337,8 +304,27 @@ function clientNameSearch(sessionID, socket, dataHash) {
     term = dataHash.term;
   }
 
+  var randomHash = null;
+  if("randomhash" in dataHash) {
+    randomHash = dataHash.randomhash;
+    logger.info("Have found randomHash: " + randomHash);
+  }
+  else {
+    logger.info("Can't find randomHash");
+  }
+
   searchapi.searchClientNameAPI(sessionID, term, function(err, returndata) {
-    logger.info("Callback has been completed");
+    logger.info("Callback has been completed err is: " + err);
+    if(!err) {
+      logger.info("About to send an autocomplete response");
+      var completeHash = {};
+      completeHash['data'] = returndata;
+      completeHash['randomhash'] = randomHash;  // add the randomHash to identify what request is for
+      io.emit('clientautocomplete', completeHash);
+    }
+    else {
+
+    }
   });
 
 }
