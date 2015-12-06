@@ -369,6 +369,12 @@ io.on('connection', function(socket) {
   });
 
 
+  socket.on('chatcreate', function(dataHash, jsessionID) {
+    logger.info("Have just got a chat create request: " + JSON.stringify(dataHash));
+    //clientNameSearch(jsessionID, socket, dataHash);
+  });
+
+
   socket.on('disconnect', function(){
     logger.debug('user disconnected');
   });

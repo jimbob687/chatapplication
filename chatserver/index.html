@@ -52,6 +52,14 @@
         float: left;
       }
 
+      .chatlabeldiv {
+        width: 100%;
+        float: left;
+        margin-top: 5px;
+        font-weight: bold;
+        font-size: 14px;
+      }
+
       .addbtndiv {
         /*position: absolute;
         bottom: 0;
@@ -85,18 +93,20 @@
       }
 
       .chattextarea {
-        width: 100%;
+        /*width: 100%;*/
         min-width: 50%;
+        max-width: 100%;
         resize: none;
 
         display:block;
         box-sizing: padding-box;
         overflow:hidden;
-
+        float: left;
         padding:10px;
         /* width:250px; */
         font-size:14px;
-        margin:50px auto;
+        margin:10px auto 20px auto;
+        border: none;
         /* border-radius:8px;
         border:6px solid #556677; */
       }
@@ -108,7 +118,9 @@
         border-color: gray;
         border-spacing: 0;
         border: 1px solid #d9d9d9;
-        margin-right: 5px;
+        margin-left: 3px;
+        margin-right: 3px;
+        margin-bottom: 3px;
       }
 
       .tannfeemailaddrspan {
@@ -117,6 +129,7 @@
 	float: left;
 	background-color: #f5f5f5;
 	border-radius: 3px;
+        font-size: 14px;
       }
 
       .tannfeemailaddrdivlabel {
@@ -131,8 +144,8 @@
 
       .tannfeemailaddrremove {
 	display: inline;
-	height: 20px;
-	width: 10px;
+	height: 100%;
+	width: 20px;
 	float: left;
 	background-color: #f5f5f5;	
 	border-radius: 3px;
@@ -147,6 +160,24 @@
       .tannfeemailaddrrx:hover {
 	cursor: pointer;
 	cursor: hand;
+      }
+
+      .chatcreateboxdiv {
+        width: 100%;
+        float: left;
+        display: none;
+        border-width: 1px;
+        border-style: solid;
+        border-radius: 2px;
+        padding: 2px;
+      }
+
+      .chatcreatebtn {
+        position: relative;
+        margin-top: 10px;
+        margin-bottom: 10px;
+        float: right; 
+        margin-right: 0;
       }
 
     </style>
@@ -289,6 +320,9 @@
       $("#newhaciendacancelbtn").on("click", function() {
         $("#newhaciendadiv").hide(); 
         $("#addhaciendabtn").show();   // hide the button
+        $("#newhaciendanameinput").val('');
+        $("#newhaciendainvitees").val('');
+        $(".chathaciendainviteediv").remove();
       });
 
       // automatically make the textarea larger
@@ -313,10 +347,15 @@
 
 
       $("#newhaciendainvitees").on('focus',function() {
+        autoCompleteName($(this), "hacienda");
+      });
 
+
+      function autoCompleteName(element, completetype) {
         // How to do autocomplete with jquery and socket.io    
         // http://stackoverflow.com/questions/18596053/jquery-ui-autocomplete-websockets-implementation
-        $('#newhaciendainvitees').autocomplete({
+        //$('#newhaciendainvitees').autocomplete({
+        $(element).autocomplete({
           width: 300,
           max: 10,
           delay: 500,
@@ -359,33 +398,121 @@
                 chatNameID = itemHash.id;
               }
             }
-            var emailID = "1";
-            var emailAddr = "something random";
 
-            var emailaddrdiv = document.createElement('div');
-            emailaddrdiv.setAttribute('id', chatNameID);
-            emailaddrdiv.className = 'tannfeemailaddrdiv';
-            document.getElementById("newhaciendainviteesdiv").appendChild(emailaddrdiv);
 
+            if(completetype == "hacienda") {
+
+              var chataddrdiv = document.createElement('div');
+              chataddrdiv.setAttribute('id', chatNameID);
+              chataddrdiv.className = 'tannfeemailaddrdiv';
+              chataddrdiv.className += ' chathaciendainviteediv';
+              document.getElementById("newhaciendainviteesdiv").insertBefore(chataddrdiv, document.getElementById("newhaciendainvitees"));
+
+              // <div class="progress progress-striped active" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+              var chataddrspan = document.createElement('span');
+              chataddrspan.setAttribute('chatadminid', chatNameID);
+              chataddrspan.className = 'tannfeemailaddrspan';
+              chataddrspan.style.width = "auto";
+              chataddrspan.innerHTML = chatName;
+              chataddrdiv.appendChild(chataddrspan);
     
-            // <div class="progress progress-striped active" role="progressbar" aria-valuemin="0" aria-valuemax="100">
-            var emailaddrspan = document.createElement('span');
-            emailaddrspan.setAttribute('email', emailAddr);
-            emailaddrspan.setAttribute('chatadminid', chatNameID);
-            emailaddrspan.className = 'tannfeemailaddrspan';
-            emailaddrspan.style.width = "auto";
-            emailaddrspan.innerHTML = chatName;
-            emailaddrdiv.appendChild(emailaddrspan);
-    
-            var emailaddrremove = document.createElement('div');
-            emailaddrremove.className = 'tannfeemailaddrremove';
-            emailaddrremove.innerHTML = '<div class="tannfeemailaddrrx">x</div>';
-            emailaddrdiv.appendChild(emailaddrremove);
+              var chataddrremove = document.createElement('div');
+              chataddrremove.className = 'tannfeemailaddrremove';
+              chataddrdiv.appendChild(chataddrremove);
 
-            $("#newhaciendainvitees").val('');
-            return false;     // we don't want the entry in the textarea
+              var chataddrremovebtn = document.createElement('button');
+              chataddrremovebtn.className = 'cancelbtn';
+              chataddrremovebtn.innerHTML = '<i class="fa fa-times fa-lg"></i>';
+              chataddrremove.appendChild(chataddrremovebtn);
+            
+
+              $(chataddrremovebtn).on("click", function() {
+                // remove the user
+                $(chataddrdiv).remove();
+              });
+
+              $("#newhaciendainvitees").val('');
+              return false;     // we don't want the entry in the textarea
+
+            }
+            else if(completetype == "chat") {
+
+              var chataddrdiv = document.createElement('div');
+              chataddrdiv.setAttribute('id', chatNameID);
+              chataddrdiv.className = 'tannfeemailaddrdiv';
+              chataddrdiv.className += ' chatinviteediv';
+              document.getElementById("newchatinviteesdiv").insertBefore(chataddrdiv, document.getElementById("newchatinvitees"));
+
+              // <div class="progress progress-striped active" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+              var chataddrspan = document.createElement('span');
+              chataddrspan.setAttribute('chatadminid', chatNameID);
+              chataddrspan.className = 'tannfeemailaddrspan';
+              chataddrspan.style.width = "auto";
+              chataddrspan.innerHTML = chatName;
+              chataddrdiv.appendChild(chataddrspan);
+    
+              var chataddrremove = document.createElement('div');
+              chataddrremove.className = 'tannfeemailaddrremove';
+              chataddrdiv.appendChild(chataddrremove);
+
+              var chataddrremovebtn = document.createElement('button');
+              chataddrremovebtn.className = 'cancelbtn';
+              chataddrremovebtn.innerHTML = '<i class="fa fa-times fa-lg"></i>';
+              chataddrremove.appendChild(chataddrremovebtn);
+            
+
+              $(chataddrremovebtn).on("click", function() {
+                // remove the user
+                $(chataddrdiv).remove();
+              });
+
+              $("#newchatinvitees").val('');
+              return false;     // we don't want the entry in the textarea
+
+            }
           }
         });
+      }
+
+      $("#newhaciendainviteesdiv").on('click', function() {
+        $("#newhaciendainvitees").focus();
+      });
+
+
+      $("#addcontactbtn").on("click", function() {
+        if(!$("#newcontactdiv").is(":visible")) {
+          $("#newcontactdiv").show(); 
+          $(this).hide();   // hide the button
+        }
+      });
+
+      $("#newcontactcancelbtn").on("click", function() {
+        $("#newcontactdiv").hide(); 
+        $("#addcontactbtn").show();   // hide the button
+        $("#newchatinvitees").val('');
+        $(".chatinviteediv").remove();
+      });
+
+      $("#newchatinvitees").on('focus',function() {
+        autoCompleteName($(this), "chat");
+      });
+
+      $("#newchatinviteesdiv").on('click', function() {
+        $("#newchatinvitees").focus();
+      });
+
+      $("#chatcreatebtn").on('click', function() {
+        $(this).prop("disabled", true);
+        var inviteeIdArray = [];
+        $('.chatinviteediv').each(function() {
+          inviteeIdArray.push(this.id);
+        });
+        var jessionID = null;
+        jsessionID = GetCookie('JSESSIONID'); 
+        var dataHash = {};
+        dataHash["inviteeid"] = inviteeIdArray;
+        socket.emit('chatcreate', dataHash, jsessionID);
+        $(this).prop("disabled", false);
       });
 
     });
@@ -423,62 +550,91 @@
     </div>
 
 
-    <div id="covwindow" class="chatdiv"  style="width: 200px;">
+    <div id="chatlistingdiv" class="chatdiv"  style="width: 200px;">
+
+      <div id="covwindow" class="chatdiv"  style="width: 100%;">
     
-      <div id="haciendadiv" style="width: 180px; float: left; margin-bottom: 10px;">
+        <div id="haciendadiv" style="width: 180px; float: left; margin-bottom: 10px;">
 
-        <div id="haciendatitle" style="float: left; width: 100%; position: relative; height: 28px;">
-          <h4 class="chatheading" style="margin-top: 5px; margin-bottom: 8px;">Haciendas</h4>
+          <div id="haciendatitle" style="float: left; width: 100%; position: relative; height: 28px;">
+            <h4 class="chatheading" style="margin-top: 5px; margin-bottom: 8px;">Haciendas</h4>
 
-          <div class="addbtndiv">
-            <button id="addhaciendabtn" class="addbtn">
-              <i class="fa fa-plus-square-o fa-2x"></i>
-            </button>
+            <div class="addbtndiv">
+              <button id="addhaciendabtn" class="addbtn">
+                <i class="fa fa-plus-square-o fa-2x"></i>
+              </button>
+            </div>
+
+          </div>
+ 
+          <div id="newhaciendadiv" class="chatcreateboxdiv">
+
+            <div id="newhaciendacancel" style="width: 100%; float: left;">
+              <button id="newhaciendacancelbtn" class="cancelbtn" style="float: right">
+                <i class="fa fa-times-circle fa-lg"></i>
+              </button>
+            </div>
+
+            <div id="newhaciendaname" style="width: 100%; float: left;">
+              <div class="chatlabeldiv">
+                <label id="newhaciendanamelabel" style="width: 100%; float: left;">Name</label>
+              </div>
+              <input type="text" id="newhaciendanameinput" name="newhaciendanameinput" style="width: 100%; float: left; font-size: 14px; padding: 4px;">
+            </div>
+
+            <div class="chatlabeldiv">
+              <label id="newhaciendainviteeslabel" style="width: 100%; float: left;">Invitees</label>
+            </div>
+ 
+            <div id="newhaciendainviteesdiv" style="width: 100%; float: left; border-style: solid; border-width: 1px;">
+              <textarea id="newhaciendainvitees" class="chattextarea" rows="1" spellcheck="false" autocomplete="false" autocapitalize="off" autocorrect="off"></textarea>   
+            </div>
+
+            <div id="haciendacreatebtndiv" style="width: 100%; float: left;">
+              <button id="haciendacreatebtn" class="btn btn-success chatcreatebtn" type="submit">
+                <span>Create</span>
+              </button>
+            </div>
+
           </div>
 
         </div>
- 
-        <div id="newhaciendadiv" style="width: 100%; float: left; display: none; border-width: 1px; border-style: solid; border-radius: 2px; padding: 2px;">
 
-          <div id="newhaciendacancel" style="width: 100%; float: left;">
-            <button id="newhaciendacancelbtn" class="cancelbtn" style="float: right">
+
+        <div id="contactwindow" style="width: 180px; float: left;">
+     
+          <div id="contacttitle" style="float: left; width: 100%; position: relative; height: 28px;">
+            <h4 class="chatheading">Contacts</h4>
+
+            <div class="addbtndiv">
+              <button id="addcontactbtn" class="addbtn">
+                <i class="fa fa-plus-square-o fa-2x"></i>
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+
+        <div id="newcontactdiv" class="chatcreateboxdiv">
+
+          <div id="newcontactcancel" style="width: 100%; float: left;">
+            <button id="newcontactcancelbtn" class="cancelbtn" style="float: right">
               <i class="fa fa-times-circle fa-lg"></i>
             </button>
           </div>
 
-          <div id="newhaciendaname" style="width: 100%; float: left;">
-            <label id="newhaciendanamelabel" style="width: 100%; float: left;">Name</label>
-            <input type="text" id="newhaciendanameinput" name="newhaciendanameinput" style="width: 100%; float: left;">
+          <div id="newchatinviteesdiv" style="width: 100%; float: left; border-style: solid; border-width: 1px;">
+            <textarea id="newchatinvitees" class="chattextarea" rows="1" spellcheck="false" autocomplete="false" autocapitalize="off" autocorrect="off"></textarea>   
           </div>
 
-          <div>
-            <label id="newhaciendainviteeslabel" style="width: 100%; float: left;">Name</label>
-            <div id="newhaciendainviteesdiv" style="width: 100%; float: left;">
-              <textarea id="newhaciendainvitees" class="chattextarea" rows="1" spellcheck="false" autocomplete="false" autocapitalize="off" autocorrect="off"></textarea>   
-            </div>
-          </div>
- 
-
-        </div>
-
-      </div>
-
-
-      <div id="contactwindow" style="width: 180px; float: left;">
-    
-        <div id="contacttitle" style="float: left; width: 100%; position: relative; height: 28px;">
-          <h4 class="chatheading">Contacts</h4>
-
-          <div class="addbtndiv">
-            <button id="addcontactbtn" class="addbtn">
-              <i class="fa fa-plus-square-o fa-2x"></i>
+          <div id="chatcreatebtndiv" style="width: 100%; float: left;">
+            <button id="chatcreatebtn" class="btn btn-success chatcreatebtn" type="submit">
+              <span>Chat</span>
             </button>
           </div>
 
         </div>
-
-      </div>
-
 
     </div>
 
