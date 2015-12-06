@@ -330,6 +330,21 @@ function clientNameSearch(sessionID, socket, dataHash) {
 }
 
 
+
+function processChatStart(sessionID, socket, dataHash) {
+
+  var inviteeIdArray = [];    // list of admins to add to the chat
+  if("inviteeid" in dataHash) {
+    inviteeIdArray = dataHash.inviteeid;
+  }
+
+  startchat.requestAdminPermissions(jsessionID, inviteeIdArray, function(err, returndata) {
+
+  });
+
+}
+
+
 app.get('/', function(req, res){
   res.sendfile('index.html');
 });
@@ -372,6 +387,7 @@ io.on('connection', function(socket) {
   socket.on('chatcreate', function(dataHash, jsessionID) {
     logger.info("Have just got a chat create request: " + JSON.stringify(dataHash));
     //clientNameSearch(jsessionID, socket, dataHash);
+    processChatStart(jsessionID, socket, dataHash);
   });
 
 

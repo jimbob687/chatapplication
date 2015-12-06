@@ -26,7 +26,8 @@
     "serverport": 443,
     "protocol": "https",
     "authpath": "/auth/AdminApiAuth.do",
-    "profilepath": "/admin/AdminChatProfile.do"
+    "profilepath": "/admin/AdminChatProfile.do",
+    "invitecheck": "/admin/AdminChatInviteCheck.do"
   },
 
   "request": {
