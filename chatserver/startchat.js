@@ -47,9 +47,9 @@ module.exports = {
       }
       else {
         if(requestConfig.verbose == true) {
-          logger.error("Error making request: " + body);
+          logger.error("Error making request: " + body + " with statusCode: " + response.statusCode);
         }
-        callback(true, JSON.parse(body));
+        callback(true, "Error");
       }
     })
   }

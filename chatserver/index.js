@@ -24,6 +24,7 @@ var fs = require('fs');
 
 var authapi = require('./authapi.js');
 var searchapi = require('./searchapi.js');
+var startchat = require('./startchat.js');
 
 var dbmethods = require('./dbmethods.js');
 
@@ -338,8 +339,13 @@ function processChatStart(sessionID, socket, dataHash) {
     inviteeIdArray = dataHash.inviteeid;
   }
 
-  startchat.requestAdminPermissions(jsessionID, inviteeIdArray, function(err, returndata) {
-
+  startchat.requestAdminPermissions(sessionID, inviteeIdArray, function(err, returndata) {
+    if(!err) {
+      logger.info("Not an error");
+    }
+    else {
+      logger.info("Got an error checking chat permissions");
+    }
   });
 
 }
