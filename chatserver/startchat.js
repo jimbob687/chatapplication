@@ -10,7 +10,8 @@ module.exports = {
     // Query to check that an admin has permissions to chat with another user, might be several criteria, do they
     // belong to the same group, or if outside group, have they invited a user before
 
-    var serverURL = apiServerConfig.protocol + "://" + apiServerConfig.serverhostname + ":" + apiServerConfig.serverport + apiServerConfig.invitecheck;
+    var serverURL = apiServerConfig.protocol + "://" + apiServerConfig.serverhostname + ":" + 
+					apiServerConfig.serverport + apiServerConfig.invitecheck;
 
     request.defaults({jar: true});
     if(requestConfig.verbose == true) {
@@ -30,7 +31,8 @@ module.exports = {
     */
 
     var formData = {};
-    formData["adminlist"] = adminIdList;
+    formData["adminlist"] = JSON.stringify(adminIdList);
+    logger.debug("adminIdList: " + adminIdList);
 
     request( { method: 'POST', url: serverURL, jar: j, form: formData }, function (error, response, body) {
       if (!error && response.statusCode == 200) {

@@ -1,4 +1,3 @@
-//var app = require('express')();
 var express = require('express');
 var cookieParser = require('cookie-parser')
 var app = express();
@@ -33,7 +32,8 @@ logger.level = 'debug';
 
 // Hash of the socket connections, key is the clientID and value is the socket object
 var socketClientHash = {};
-// Hash of the socket connections, key is the JSESSIONID and value is the clientID e.g. { JSESSIONID1: 6576, JSESSIONID2: 9845 }
+// Hash of the socket connections, key is the JSESSIONID and value is the clientID 
+// e.g. { JSESSIONID1: 6576, JSESSIONID2: 9845 }
 var socketSessionHash = {};
 
 
