@@ -91,26 +91,27 @@ module.exports = {
       }   
 
       // invalidate any existing associations for the chat session with other servers
-      connection.query('INSERT conversation (clientIDcreator, status) VALUES (?,?), [clientID, 'active'], function(err,result) {
+      connection.query('INSERT conversation (clientIDcreator, status) VALUES (?,?)', [clientID, 'active'], function(err,result) {
 
         var conversationID = result.insertId;    // key of the conversationID that has just been created
 
         if(!err) {
           for(var clientIDkey in permHash) {
             var clientPermHash = permHash[clientIDkey];    // e.g. "26":{"permission":true,"permtype":"commonclinic"}, clientIDkey is 26
-            connection.query('INSERT INTO sessionserver (chatserverID, chatsessionID, status) VALUES (?,?,?)', [jsessionid, clientID, 'active'], function(err,result) {
-              if(err) {
+            connection.query('INSERT INTO sessionserver (chatserverID, chatsessionID, status) VALUES (?,?,?)', 
+								[jsessionid, clientID, 'active'], function(err,result) {
+             if(err) {
                 logger.error("Error, unable to insert sessionserver");
                 connection.release();
                 callback(true, err);
                 return;
               }
-            }
+            });
             connection.release();
             var sessionserverID = result.insertId;    // key for the record that has just been inserted
             callback(false, sessionserverID);
             return;
-          });
+          }
         }
 
         connection.on('error', function(err) {      

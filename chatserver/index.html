@@ -275,6 +275,14 @@
         }
       });
 
+      socket.on('chatstartfail', function(returnData) {
+        console.log("Unable to start chat due to permission issues");
+      });
+
+      socket.on('chatstart', function(returnData) {
+
+      });
+
       $("#adminloginbtn").on('click', function(){
 		
         $("#loginerrordiv").empty();

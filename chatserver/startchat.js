@@ -54,6 +54,33 @@ module.exports = {
         callback(true, "Error");
       }
     })
+  },
+
+
+  checkAdminPermissions: function(adminPermHash, callback) {
+    var permsOK = processAdminPermissions(adminPermHash);
+    callback(permsOK);
   }
 
 }
+
+/*
+ * Function to check the permissions returned by a hash and returns a boolean if all permissions pass or not
+*/
+function processAdminPermissions(adminPermHash) {
+
+  var allOK = true;  
+
+  for(key in adminPermHash) {
+    var thisPermHash = adminPermHash[key];
+    if(!"permission" in thisPermHash || thisPermHash.permission != true) {
+      allOK = false;
+    }
+  }
+  return allOK;
+}
+
+
+
+
+

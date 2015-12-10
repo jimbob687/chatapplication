@@ -342,6 +342,28 @@ function processChatStart(sessionID, socket, dataHash) {
   startchat.requestAdminPermissions(sessionID, inviteeIdArray, function(err, returndata) {
     if(!err) {
       logger.info("Not an error");
+      var adminPermHash = null;
+      /*
+      if("perms" in returndata) {
+        startchat.checkAdminPermissions(returndata.perms, function(permsOK) {
+          if(permsOK) {
+            if("clientid" in socket) {
+              var clientID = socket.clientid;
+              logger.info("clientID: " + clientID);
+            }
+
+          }
+          else {
+            io.emit('chatstartfail', "Invalid client");
+            return;
+          }
+        }
+      }
+      else {
+        // can't find perms hash send back an error
+        logger.error("Unable to find perms hash");
+      }
+      */
     }
     else {
       logger.info("Got an error checking chat permissions");
