@@ -331,7 +331,33 @@ function clientNameSearch(sessionID, socket, dataHash) {
 }
 
 
+/**
+ * Function to add a new chat session to the db and return the chat sessionID
+ * @sessionID    ID of the session
+ * @clientID     ID of the client
+ * @socket       Socket that the request came in on
+ */
+function addChatSessionDB(sessionID, clientID, socket) {
 
+  dbmethods.insertConversation(clientID, function(err, chatSessionID) {
+    if(!err) {
+      // have started a chat
+      console.log("Chat sessionID: " + chatSessionID);
+    }
+    else {
+      // there is an error
+    }
+  });
+
+}
+
+
+/**
+ * Start a chat search
+ * @sessionID  ID of the session
+ * @socket     Socket that the connection is for
+ * @dataHash   HashMap of the data
+ */
 function processChatStart(sessionID, socket, dataHash) {
 
   var inviteeIdArray = [];    // list of admins to add to the chat
@@ -341,29 +367,30 @@ function processChatStart(sessionID, socket, dataHash) {
 
   startchat.requestAdminPermissions(sessionID, inviteeIdArray, function(err, returndata) {
     if(!err) {
-      logger.info("Not an error");
+      logger.info("Not an error requesting admin permissions");
       var adminPermHash = null;
-      /*
       if("perms" in returndata) {
         startchat.checkAdminPermissions(returndata.perms, function(permsOK) {
           if(permsOK) {
+            logger.info("Perms are OK");
             if("clientid" in socket) {
               var clientID = socket.clientid;
               logger.info("clientID: " + clientID);
+              addChatSessionDB(sessionID, clientID, socket);
             }
 
           }
           else {
+            logger.info("Error, invalid client perms creating chat");
             io.emit('chatstartfail', "Invalid client");
             return;
           }
-        }
+        });
       }
       else {
         // can't find perms hash send back an error
         logger.error("Unable to find perms hash");
       }
-      */
     }
     else {
       logger.info("Got an error checking chat permissions");
