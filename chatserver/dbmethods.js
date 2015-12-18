@@ -78,8 +78,9 @@ module.exports = {
   },
 
 
-  // Function to create a conversation in the db and add the clientIDs
+  // Function to create a conversation in the db and add the clientIDs, this is for a direct chat, not a room/hacienda
   // clientID - ID of the client creating the conversation
+  // chatconversionID  - ID of the chat conversation that was just created
   insertConversation: function(clientID, callback) {
     
     pool.getConnection(function(err,connection) {
