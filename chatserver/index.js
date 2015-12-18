@@ -146,7 +146,7 @@ function insertDbSessionID(sessionID, clientID) {
  * sessionID - is the JSESSIONID that we are making the query for
  * socket - is the socket that the request came in on, if is null then sessionID didn't come in on a socket
 */
-function adminProfile(sessionID, socket) {
+function adminProfile(sessionID, socket, callback) {
 
   authapi.queryProfileAPI(sessionID, function(err, profileJson) {
 
@@ -174,6 +174,10 @@ function adminProfile(sessionID, socket) {
           // add the sessionID to the hash
           socketSessionHash[sessionID] = clientID;
 
+          if(socket != null) {
+            socket.clientid = clientID;   // Set the clientID on the socket
+          }
+
           // build a hash and add the clientId to the main hash
           var clientHash = {};
           clientHash["sessionID"] = sessionID;
@@ -184,6 +188,10 @@ function adminProfile(sessionID, socket) {
             clientHash["socket"] = socket;
           }
           socketClientHash[clientID] = clientHash;   // add to the hash
+          callback(false, null);   // return that everything went ok
+        }
+        else {
+          callback(true, null);   // return that failed
         }
       }
     }
@@ -193,6 +201,7 @@ function adminProfile(sessionID, socket) {
         errMsg = profileJson.message;
       }
       logger.error("Error, unable to get profile details for user, error message: " + errMsg);
+      callback(true, null);
       //res.status(404);
       //res.send(errMsg);
     }
@@ -219,7 +228,9 @@ function searchSessionID(sessionID, socket, dataHash, callback) {
       }
       else if(rows.length == 0) {
         // no results returned, we need to call the api server for client details
-        adminProfile(sessionID, socket);
+        adminProfile(sessionID, socket, function(err, returnHash) {
+
+        });
       }
       else if(rows.length > 1) {
         // should only have max 1 row returned, this is an error
@@ -400,7 +411,15 @@ io.on('connection', function(socket) {
     }
     else {
       logger.debug("Socket doesn't have a clientid so need to get from the db");
-      searchSessionID(jsessionID, socket, dataHash, processData);
+      //searchSessionID(jsessionID, socket, dataHash, processData);
+      adminProfile(sessionID, socket, function(err, returndata) {
+        if(!err) {
+          processData(sessionID, socket, dataHash);
+        }
+        else {
+          // This is an error, need to return some sort of error
+        }
+      });
     }
 
   });
@@ -414,13 +433,28 @@ io.on('connection', function(socket) {
 
   socket.on('chatcreate', function(dataHash, jsessionID) {
     logger.info("Have just got a chat create request: " + JSON.stringify(dataHash));
-    //clientNameSearch(jsessionID, socket, dataHash);
-    processChatStart(jsessionID, socket, dataHash);
+    if("clientid" in socket) {
+      //clientNameSearch(jsessionID, socket, dataHash);
+      processChatStart(jsessionID, socket, dataHash);
+    }
+    else {
+      adminProfile(jsessionID, socket, function(err, returndata) {
+        if(!err) {
+          logger.info("Don't have error, so moving on");
+          // create a chatsessionID for the chat room
+          processData(jsessionID, socket, dataHash);
+        }
+        else {
+          // need to return an error
+        }
+      });
+    }
   });
 
 
   socket.on('disconnect', function(){
     logger.debug('user disconnected');
+    socket.clientid = null;
   });
 
 
