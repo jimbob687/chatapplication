@@ -11,6 +11,7 @@ var json = require('express-json');
 app.use(json());       // to support JSON-encoded bodies
 var crypto = require('crypto');
 
+var moment = require('moment');
 
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
@@ -27,7 +28,25 @@ var startchat = require('./startchat.js');
 
 var dbmethods = require('./dbmethods.js');
 
-global.logger = require('winston'); // this is for logging
+// global.logger = require('winston'); // this is for logging
+winston = require('winston'); // this is for logging
+global.logger = new (winston.Logger)({
+  transports: [
+    new (winston.transports.Console)({
+      colorize: true,
+      timestamp: function() {
+        //return Date.now();
+        //return new Date();
+        return moment(new Date()).format("YYYY-MM-DD HH:mm:ss");
+      },
+      formatter: function(options) {
+        // Return string will be passed to logger. 
+        return options.timestamp() +' '+ options.level.toUpperCase() +' '+ (undefined !== options.message ? options.message : '') +
+          (options.meta && Object.keys(options.meta).length ? '\n\t'+ JSON.stringify(options.meta) : '' );
+      }
+    })
+  ]
+});
 logger.level = 'debug';
 
 // Hash of the socket connections, key is the clientID and value is the socket object
