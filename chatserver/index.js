@@ -27,9 +27,11 @@ var config    =    require('config');    // Taken from https://www.npmjs.com/pac
 //var tnfauth = require('./tnfauth.js');
 var fs = require('fs');
 
-var authapi = require('./authapi.js');
-var searchapi = require('./searchapi.js');
+global._authapi = require('./authapi.js');
+global._searchapi = require('./searchapi.js');
 var startchat = require('./startchat.js');
+var socketconn = require('./socketconn.js');
+global._commonchat = require('./commonchat.js');
 
 var dbmethods = require('./dbmethods.js');
 
@@ -124,12 +126,13 @@ for (var func in winston.levels) {
 logger.level = 'debug';
 
 
-
+/*
 // Hash of the socket connections, key is the clientID and value is the socket object
 var socketClientHash = {};
 // Hash of the socket connections, key is the JSESSIONID and value is the clientID 
 // e.g. { JSESSIONID1: 6576, JSESSIONID2: 9845 }
 var socketSessionHash = {};
+*/
 
 
 var chatDbConfig = config.get('chatdb.dbConfig');
@@ -153,7 +156,7 @@ GLOBAL.apiServerConfig = config.get('apiserver');
 GLOBAL.requestConfig = config.get('request');
 
 
-global.chatServerID = null;   // ID of the server in the DB table chatservers
+global._chatServerID = null;   // ID of the server in the DB table chatservers
 
 global.serverHostName = os.hostname();
 logger.info("hostname: " + global.serverHostName);
@@ -218,7 +221,7 @@ function checkServerRecordInDB() {
             logger.info("Record inserted for server into chatservers");
             if(thisChatServerID != null && thisChatServerID !== undefined) {
               // set the ID of the server that was in the DB
-              chatServerID = thisChatServerID;
+              _chatServerID = thisChatServerID;
             }
             else {
               logger.error("Unable to determine chatServerID for this server after inserting into db, FATAL error");
@@ -238,10 +241,10 @@ function checkServerRecordInDB() {
       }
       else if(serverRecords == 1) {
         if("chatserverID" in dbRows[0]) {
-          chatServerID = dbRows[0].chatserverID;
+          _chatServerID = dbRows[0].chatserverID;
         }
         else {
-          logger.error("Unable to find chatServerID in results returned from db to determine key regarding this server, FATAL error");
+          logger.error("Unable to find _chatServerID in results returned from db to determine key regarding this server, FATAL error");
           process.exit(1);
         }
       }
@@ -249,6 +252,10 @@ function checkServerRecordInDB() {
     else {
       logger.error("Unable to query the database to see if this server has a record in the DB, FATAL error");
       process.exit(1);
+    }
+
+    if(_chatServerID != null) {
+      socketconn.startSocket(io, http);
     }
   });
 
@@ -277,7 +284,7 @@ socketcontroller.on('connect', function(socketcontroller) {
 
 function authClient(username, password, req, res) {
 
-  authapi.queryAuthAPI(username, password, function(err, authJson) {
+  _authapi.queryAuthAPI(username, password, function(err, authJson) {
 
     if (!err) {
       if(authJson == null) {
@@ -293,9 +300,9 @@ function authClient(username, password, req, res) {
             res.cookie('JSESSIONID', sessionID, { httpOnly: false });
             res.send( { "success": true } );
             res.status(200);
-            adminProfile(sessionID, null, function(err, returndata) {
+            //adminProfile(sessionID, null, function(err, returndata) {
               // get the profile details for the admin
-            });
+            //});
           }
           else {
             logger.error("sessionid not found in return json");
@@ -326,14 +333,16 @@ function authClient(username, password, req, res) {
 }
 
 
-function insertDbSessionID(sessionID, clientID) {
+function insertDbSessionID(sessionID, clientID, callback) {
 
   dbmethods.insertChatSession(sessionID, clientID, function(err, chatsessionID) {
     if(!err) {
       logger.debug("Have inserted into db chatsessionID: " + chatsessionID);
+      callback(false, chatsessionID);
     }
     else {
       logger.error("Error attempting to insert sessionID into db for clientID: " + clientID);
+      callback(true, null);
     }
   });
 
@@ -347,7 +356,11 @@ function insertDbSessionID(sessionID, clientID) {
 */
 function adminProfile(sessionID, socket, callback) {
 
-  authapi.queryProfileAPI(sessionID, function(err, profileJson) {
+  _authapi.queryProfileAPI(sessionID, function(err, profileJson) {
+
+    if(socket == null) {
+      logger.error("Socket is null at top of method");
+    }
 
     if (!err) {
       if(profileJson == null) {
@@ -363,35 +376,48 @@ function adminProfile(sessionID, socket, callback) {
         var clientID = null;
         if("sTarget_AdminID" in adminJson) {
           clientID = adminJson.sTarget_AdminID;
-          insertDbSessionID(sessionID, clientID);   // insert the session into the database
+          // insert the session into the database
+          insertDbSessionID(sessionID, clientID, function(err, chatsessionID) {
+            if(!err) {
+              logger.debug("Need to update hash for chatsessionID: " + chatsessionID + " and clientID: " + clientID);
+              
+              if(clientID !== null) {
+                // add the sessionID to the hash
+                socketSessionHash[sessionID] = clientID;
+
+                if(socket != null) {
+                  socket.clientid = clientID;   // Set the clientID on the socket
+                  socketconn.addSessionToHash(sessionID, socket, clientID, function(err, addHashData) {
+                    if(!err) {
+                     // here if we want to do something in the future
+                    }
+                    else {
+                      logger.error("Error attempting to update socketClientHash for clientID: " + clientID);
+                    }
+                  });
+
+                }
+                else {
+                  logger.error("Error, socket is null");
+                }
+
+                callback(false, null);   // return that everything went ok
+              }
+              else {
+                callback(true, null);   // return that failed
+              }
+            }
+            else {
+              logger.error("Error attempting to insert chat session into db");
+              callback(true, null);
+            }
+          });
         }
         else {
           logger.error("clientID not found in adminJson");
+          callback(true, null);
         }
 
-        if(clientID !== null) {
-          // add the sessionID to the hash
-          socketSessionHash[sessionID] = clientID;
-
-          if(socket != null) {
-            socket.clientid = clientID;   // Set the clientID on the socket
-          }
-
-          // build a hash and add the clientId to the main hash
-          var clientHash = {};
-          clientHash["sessionID"] = sessionID;
-          var sessionExpire = Math.floor(Date.now() / 1000) + sessionConfig.maxagesecs;
-          clientHash["expire"] = sessionExpire;
-          if(socket !== null) {
-            // we have a socket with this
-            clientHash["socket"] = socket;
-          }
-          socketClientHash[clientID] = clientHash;   // add to the hash
-          callback(false, null);   // return that everything went ok
-        }
-        else {
-          callback(true, null);   // return that failed
-        }
       }
     }
     else {
@@ -427,9 +453,15 @@ function searchSessionID(sessionID, socket, dataHash, callback) {
       }
       else if(rows.length == 0) {
         // no results returned, we need to call the api server for client details
+        /*
         adminProfile(sessionID, socket, function(err, returnHash) {
-
+          if(!err) {
+          }
+          else {
+            logger.error("Error attempting to add session to db and hash for socket");
+          }
         });
+        */
       }
       else if(rows.length > 1) {
         // should only have max 1 row returned, this is an error
@@ -507,8 +539,9 @@ function processData(sessionID, socket, dataHash) {
 
 /*
  * To perform an autocomplete on a client name to start or add to a conversation
- *
+ *  Has been taken out as moved to common
 */
+/*
 function clientNameSearch(sessionID, socket, dataHash) {
   var term = null;
   if("term" in dataHash) {
@@ -524,7 +557,7 @@ function clientNameSearch(sessionID, socket, dataHash) {
     logger.info("Can't find randomHash");
   }
 
-  searchapi.searchClientNameAPI(sessionID, term, function(err, returndata) {
+  _searchapi.searchClientNameAPI(sessionID, term, function(err, returndata) {
     logger.info("Callback has been completed err is: " + err);
     if(!err) {
       logger.info("About to send an autocomplete response");
@@ -539,6 +572,7 @@ function clientNameSearch(sessionID, socket, dataHash) {
   });
 
 }
+*/
 
 
 /**
@@ -624,68 +658,6 @@ app.post("/login", function(req, res) {
   }
 });
 
-io.on('connection', function(socket) {
-  logger.debug('a user connected');
-
-  socket.on('data', function(dataHash, jsessionID) {
-    logger.info("dataHash: " + JSON.stringify(dataHash));
-
-    // Adapted from the following link to be able to send a cookie thru when connecting. 
-    // http://stackoverflow.com/questions/4753957/socket-io-authentication
-    if("clientid" in socket) {
-      logger.info("clientid of socket: " + socket.clientid);
-      processData(sessionID, socket, dataHash);
-    }
-    else {
-      logger.debug("Socket doesn't have a clientid so need to get from the db");
-      //searchSessionID(jsessionID, socket, dataHash, processData);
-      adminProfile(sessionID, socket, function(err, returndata) {
-        if(!err) {
-          processData(sessionID, socket, dataHash);
-        }
-        else {
-          // This is an error, need to return some sort of error
-        }
-      });
-    }
-
-  });
- 
-
-  socket.on('clientlookup', function(dataHash, jsessionID) {
-    logger.info("Have just got an autocomplete request: " + JSON.stringify(dataHash));
-    clientNameSearch(jsessionID, socket, dataHash);
-  });
-
-
-  socket.on('chatcreate', function(dataHash, jsessionID) {
-    logger.info("Have just got a chat create request: " + JSON.stringify(dataHash));
-    if("clientid" in socket) {
-      //clientNameSearch(jsessionID, socket, dataHash);
-      processChatStart(jsessionID, socket, dataHash);
-    }
-    else {
-      adminProfile(jsessionID, socket, function(err, returndata) {
-        if(!err) {
-          logger.info("Don't have error, so moving on");
-          // create a chatsessionID for the chat room
-          processData(jsessionID, socket, dataHash);
-        }
-        else {
-          // need to return an error
-        }
-      });
-    }
-  });
-
-
-  socket.on('disconnect', function(){
-    logger.debug('user disconnected');
-    socket.clientid = null;
-  });
-
-
-});
 
 
 http.listen(expressConfig.port, function(){

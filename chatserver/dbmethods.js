@@ -8,10 +8,9 @@ module.exports = {
         logger.info("Error, unable to get database connection");
         var res = {"code" : 100, "status" : "Error in connection database"};
         callback(true, res);
-        return;
       }   
 
-      connection.query('INSERT INTO chatsessions (jsessionid, clientID, chatserverID, expiretime) VALUES (?,?,?,(now() + INTERVAL ? SECOND))', [jsessionid, clientID, chatServerID, sessionConfig.maxagesecs], function(err,result) {
+      connection.query('INSERT INTO chatsessions (jsessionid, clientID, chatserverID, expiretime) VALUES (?,?,?,(now() + INTERVAL ? SECOND))', [jsessionid, clientID, _chatServerID, sessionConfig.maxagesecs], function(err,result) {
         connection.release();
         if(!err) {
           var chatsessionID = result.insertId;    // key for the record that has just been inserted
@@ -38,11 +37,13 @@ module.exports = {
 
     pool.getConnection(function(err,connection) {
       if (err) {
+        logger.error("Error attempting to get db connection");
         var res = {"code" : 100, "status" : "Error in connection database"};
-        return;
+        callback(true, res);
       }   
 
       connection.query('SELECT chatserverID FROM chatservers WHERE servername = ? AND serverip = ? AND status = ?', [serverHostName, serverIP, 'active'], function(err, rows) {
+        logger.debug("Completed query to get chat server details");
         connection.release();
         if(!err) {
           callback(false, rows);
@@ -75,7 +76,6 @@ module.exports = {
       if (err) {
         var res = {"code" : 100, "status" : "Error in connection database"};
         callback(true, res);
-        return;
       }   
       logger.info("About to insert record into db for chat server");
 
@@ -124,7 +124,6 @@ module.exports = {
       if (err) {
         var res = {"code" : 100, "status" : "Error in connection database"};
         callback(true, res);
-        return;
       }   
 
       // invalidate any existing associations for the chat session with other servers
@@ -168,7 +167,6 @@ module.exports = {
       if (err) {
         var res = {"code" : 100, "status" : "Error in connection database"};
         callback(true, res);
-        return;
       }   
 
       // invalidate any existing associations for the chat session with other servers
@@ -213,7 +211,7 @@ module.exports = {
     pool.getConnection(function(err,connection) {
       if (err) {
         var res = {"code" : 100, "status" : "Error in connection database"};
-        return;
+        callback(true, res);
       }   
 
       connection.query('SELECT chatsessionid, jsessionid, clientID, chatserverID, created, expiretime FROM chatsessions WHERE jsessionid = ?', [jsessionid], function(err, rows) {
@@ -246,7 +244,7 @@ module.exports = {
     pool.getConnection(function(err,connection) {
       if (err) {
         var res = {"code" : 100, "status" : "Error in connection database"};
-        return;
+        callback(true, res);
       }   
 
       connection.query('SELECT chatsessionid, jsessionid, clientID, chatserverID, created, expiretime FROM chatsessions WHERE clientID = ?', [clientID], function(err, rows) {
