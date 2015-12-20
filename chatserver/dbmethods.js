@@ -11,7 +11,7 @@ module.exports = {
         return;
       }   
 
-      connection.query('INSERT INTO chatsessions (jsessionid, clientID, expiretime) VALUES (?,?,(now() + INTERVAL ? SECOND))', [jsessionid, clientID, sessionConfig.maxagesecs], function(err,result) {
+      connection.query('INSERT INTO chatsessions (jsessionid, clientID, chatserverID, expiretime) VALUES (?,?,?,(now() + INTERVAL ? SECOND))', [jsessionid, clientID, chatServerID, sessionConfig.maxagesecs], function(err,result) {
         connection.release();
         if(!err) {
           var chatsessionID = result.insertId;    // key for the record that has just been inserted
@@ -33,13 +33,93 @@ module.exports = {
     });
   },
 
+  // Query to see if server already has an active record of it's IPAddress and hostname in the DB
+  queryChatServerWithHostName: function(serverIP, serverHostName, callback) {
+
+    pool.getConnection(function(err,connection) {
+      if (err) {
+        var res = {"code" : 100, "status" : "Error in connection database"};
+        return;
+      }   
+
+      connection.query('SELECT chatserverID FROM chatservers WHERE servername = ? AND serverip = ? AND status = ?', [serverHostName, serverIP, 'active'], function(err, rows) {
+        connection.release();
+        if(!err) {
+          callback(false, rows);
+          return;
+        }
+        else {
+          logger.error("Error querying database for chat server information: " + err);
+          callback(true, err);
+          return;
+        }
+      });
+
+      connection.on('error', function(err) {      
+        var res = {"code" : 100, "status" : "Error in connection database"};
+        callback(true, res)
+        return;
+      });
+
+    });
+  },
+
+
+  // Function to insert a chat server record, to register a server as existing so we can then associate client connections with it
+  // serverIP - IP Address of the server that we are adding
+  // serverHostName - HostName of the server
+  insertChatServer: function(serverIP, serverHostName, callback) {
+
+    pool.getConnection(function(err,connection) {
+
+      if (err) {
+        var res = {"code" : 100, "status" : "Error in connection database"};
+        callback(true, res);
+        return;
+      }   
+      logger.info("About to insert record into db for chat server");
+
+      // invalidate any existing associations for the IPAddress to the chat server
+      connection.query('UPDATE chatservers SET status = ?, inactive_date = NOW() WHERE serverip = ? AND status = ?', ['inactive', serverIP, 'active'], function(err,result) {
+
+        if(!err) {
+          connection.query('INSERT INTO chatservers (servername, serverip, status) VALUES (?,?,?)', [serverHostName, serverIP, 'active'], function(err,result) {
+            connection.release();
+            if(!err) {
+              var chatserverID = result.insertId;    // key for the record that has just been inserted
+              callback(false, chatserverID);
+              return;
+            }           
+            else {
+              logger.error("Error inserting chat server into db: " + err);
+              callback(true, err);
+              return;
+            }
+          });
+        }
+        else {
+          logger.error("Error, unable to insert record into chatservers: " + err);
+          callback(true, err);
+        }
+
+        connection.on('error', function(err) {      
+          var res = {"code" : 100, "status" : "Error in connection database"};
+          callback(true, res);
+          return;
+        });
+
+      });
+    });
+
+  },
+
 
   // Function to associate a chat session with a server, should only be used when a new connection is established
   // chatserverID - ID of the server
   // chatsessionID - ID of the chat session
   insertSessionServer: function(chatserverID, chatsessionID, callback) {
     
-    pool.getConnection(function(err,connection){
+    pool.getConnection(function(err,connection) {
 
       if (err) {
         var res = {"code" : 100, "status" : "Error in connection database"};
@@ -136,7 +216,7 @@ module.exports = {
         return;
       }   
 
-      connection.query('SELECT chatsessionid,jsessionid, clientID, created, expiretime FROM chatsessions WHERE jsessionid = ?', [jsessionid], function(err, rows) {
+      connection.query('SELECT chatsessionid, jsessionid, clientID, chatserverID, created, expiretime FROM chatsessions WHERE jsessionid = ?', [jsessionid], function(err, rows) {
         connection.release();
         if(!err) {
           var connectionDetails = {};
@@ -157,8 +237,41 @@ module.exports = {
       });
 
     });
-  }
+  },
   
+
+  // Query the db for sessions belonging to a client so we can route messages to servers running sockets that the client has
+  queryClientSessions: function(clientID, callback) {
+
+    pool.getConnection(function(err,connection) {
+      if (err) {
+        var res = {"code" : 100, "status" : "Error in connection database"};
+        return;
+      }   
+
+      connection.query('SELECT chatsessionid, jsessionid, clientID, chatserverID, created, expiretime FROM chatsessions WHERE clientID = ?', [clientID], function(err, rows) {
+        connection.release();
+        if(!err) {
+          var connectionDetails = {};
+          callback(false, rows);
+          return;
+        }
+        else {
+          logger.error("Error querying database for client session information: " + err);
+          callback(true, err);
+          return;
+        }
+      });
+
+      connection.on('error', function(err) {      
+        var res = {"code" : 100, "status" : "Error in connection database"};
+        callback(true, res)
+        return;
+      });
+
+    });
+  }
+
 
 }
 
