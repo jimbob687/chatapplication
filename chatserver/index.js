@@ -33,7 +33,7 @@ var startchat = require('./startchat.js');
 var socketconn = require('./socketconn.js');
 global._commonchat = require('./commonchat.js');
 
-var dbmethods = require('./dbmethods.js');
+global._dbmethods = require('./dbmethods.js');
 
 // global.logger = require('winston'); // this is for logging
 winston = require('winston'); // this is for logging
@@ -210,13 +210,13 @@ if(externalIP == null) {
 function checkServerRecordInDB() {
   logger.info("In checkServerRecordInDB");
   // query the db to see if the server is already in the chatservers table
-  dbmethods.queryChatServerWithHostName(externalIP, serverHostName, function(err, dbRows) {
+  _dbmethods.queryChatServerWithHostName(externalIP, serverHostName, function(err, dbRows) {
     if(!err) {
       logger.info("Have completed query of the chatservers");
       var serverRecords = Object.keys(dbRows).length;
       if(serverRecords == 0) {
         logger.info("No server records for server in chatservers");
-        dbmethods.insertChatServer(externalIP, serverHostName, function(err, thisChatServerID) {
+        _dbmethods.insertChatServer(externalIP, serverHostName, function(err, thisChatServerID) {
           if(!err) {
             logger.info("Record inserted for server into chatservers");
             if(thisChatServerID != null && thisChatServerID !== undefined) {
@@ -335,7 +335,7 @@ function authClient(username, password, req, res) {
 
 function insertDbSessionID(sessionID, clientID, callback) {
 
-  dbmethods.insertChatSession(sessionID, clientID, function(err, chatsessionID) {
+  _dbmethods.insertChatSession(sessionID, clientID, function(err, chatsessionID) {
     if(!err) {
       logger.debug("Have inserted into db chatsessionID: " + chatsessionID);
       callback(false, chatsessionID);
@@ -444,7 +444,7 @@ function adminProfile(sessionID, socket, callback) {
 function searchSessionID(sessionID, socket, dataHash, callback) {
 
   // query the db for the details of the sessionID
-  dbmethods.querySessionID(sessionID, function(err, rows) {
+  _dbmethods.querySessionID(sessionID, function(err, rows) {
 
     if(!err) {
       logger.info("Have got: " + rows.length + " rows for sessionID: " + sessionID);
@@ -502,7 +502,9 @@ function searchSessionID(sessionID, socket, dataHash, callback) {
 
 /*
  * Process a message that has been received
-*/
+ * Moved to socket conn
+ */
+/*
 function processMessage(sessionID, socket, dataHash) {
   var message = null;
   if("message" in dataHash) {
@@ -512,6 +514,7 @@ function processMessage(sessionID, socket, dataHash) {
   // This will send to message back to the client
   io.emit('chat message', dataHash.message);
 }
+*/
 
 
 /*
@@ -519,7 +522,9 @@ function processMessage(sessionID, socket, dataHash) {
  * sessionID - the JSESSIONID 
  * socket - socket of the server
  * dataHash - Hash of the session
+ *  Moved to socket conn
 */
+/*
 function processData(sessionID, socket, dataHash) {
 
   logger.info("In processData");
@@ -535,6 +540,7 @@ function processData(sessionID, socket, dataHash) {
   }
 
 }
+*/
 
 
 /*
@@ -583,7 +589,7 @@ function clientNameSearch(sessionID, socket, dataHash) {
  */
 function addChatSessionDB(sessionID, clientID, socket) {
 
-  dbmethods.insertConversation(clientID, function(err, chatSessionID) {
+  _dbmethods.insertConversation(clientID, function(err, chatSessionID) {
     if(!err) {
       // have started a chat
       console.log("Chat sessionID: " + chatSessionID);

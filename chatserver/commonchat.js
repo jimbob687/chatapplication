@@ -56,7 +56,7 @@ module.exports = {
 
     });
 
-  }
+  },
 
   // Function to get the clientID from a profile
   searchClientID: function(clientJson, callback) {
@@ -68,7 +68,7 @@ module.exports = {
         callback(true, null);
       }
     });
-  }
+  },
 
 
   // Function to insert a session into the db
