@@ -587,6 +587,7 @@ function clientNameSearch(sessionID, socket, dataHash) {
  * @clientID     ID of the client
  * @socket       Socket that the request came in on
  */
+/*  has been moved to startchat.js
 function addChatSessionDB(sessionID, clientID, socket) {
 
   _dbmethods.insertConversation(clientID, function(err, chatSessionID) {
@@ -600,6 +601,7 @@ function addChatSessionDB(sessionID, clientID, socket) {
   });
 
 }
+*/
 
 
 /**
@@ -608,6 +610,7 @@ function addChatSessionDB(sessionID, clientID, socket) {
  * @socket     Socket that the connection is for
  * @dataHash   HashMap of the data
  */
+/*
 function processChatStart(sessionID, socket, dataHash) {
 
   var inviteeIdArray = [];    // list of admins to add to the chat
@@ -648,6 +651,7 @@ function processChatStart(sessionID, socket, dataHash) {
   });
 
 }
+*/
 
 
 app.get('/', function(req, res){

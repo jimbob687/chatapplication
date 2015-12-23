@@ -60,7 +60,22 @@ module.exports = {
   checkAdminPermissions: function(adminPermHash, callback) {
     var permsOK = processAdminPermissions(adminPermHash);
     callback(permsOK);
+  },
+
+
+  processChatStart: function(sessionID, socket, dataHash, callback) {
+    
+    runChatStart(sessionID, socket, dataHash, function(err, returnData) {
+
+      if(!err) {
+
+      }
+      else {
+
+      }
+    });
   }
+
 
 }
 
@@ -81,6 +96,84 @@ function processAdminPermissions(adminPermHash) {
 }
 
 
+/**
+ * Function to add a new chat session to the db and return the chat sessionID
+ * @sessionID    ID of the session
+ * @clientID     ID of the client
+ * @socket       Socket that the request came in on
+ */
+function addChatSessionDB(sessionID, clientID, socket, callback) {
 
+  _dbmethods.insertConversation(clientID, function(err, chatSessionID) {
+    if(!err) {
+      // have started a chat
+      console.log("Chat sessionID: " + chatSessionID);
+      callback(false, chatSessionID);
+    }
+    else {
+      // there is an error
+      callback(true, "Unable to generate chat session");
+    }
+  });
+
+}
+
+
+/**
+ * Start a chat search
+ * @sessionID  ID of the session
+ * @socket     Socket that the connection is for
+ * @dataHash   HashMap of the data
+ */
+function runChatStart(sessionID, socket, dataHash, callback) {
+
+  var inviteeIdArray = [];    // list of admins to add to the chat
+  if("inviteeid" in dataHash) {
+    inviteeIdArray = dataHash.inviteeid;
+  }
+
+  startchat.requestAdminPermissions(sessionID, inviteeIdArray, function(err, returndata) {
+    if(!err) {
+      logger.info("Not an error requesting admin permissions");
+      var adminPermHash = null;
+      if("perms" in returndata) {
+        startchat.checkAdminPermissions(returndata.perms, function(permsOK) {
+          if(permsOK) {
+            logger.info("Perms are OK");
+            if("clientid" in socket) {
+              var clientID = socket.clientid;
+              logger.info("clientID: " + clientID);
+              addChatSessionDB(sessionID, clientID, socket, function(err, chatSessionData) {
+                if(!err) {
+                  callback(false, chatSessionData);
+                }
+                else {
+                  callback(true, chatSessionData);
+                }
+              });
+            }
+            else {
+              callback(true, "Unable to verify permissions");
+            }
+          }
+          else {
+            logger.info("Error, invalid client perms creating chat");
+            io.emit('chatstartfail', "Invalid client");
+            callback(true, "Unable to start chat session");
+          }
+        });
+      }
+      else {
+        // can't find perms hash send back an error
+        logger.error("Unable to find perms hash");
+        callback(true, "Unable to start chat session");
+      }
+    }
+    else {
+      logger.info("Got an error checking chat permissions");
+    }
+  });
+
+}
 
 

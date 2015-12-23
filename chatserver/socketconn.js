@@ -82,7 +82,7 @@ module.exports = {
         checkJsessionID(socket, jsessionID);
         if("clientid" in socket) {
           //clientNameSearch(jsessionID, socket, dataHash);
-          processChatStart(jsessionID, socket, dataHash);
+          startchat.processChatStart(jsessionID, socket, dataHash);
         }
         else {
           adminProfile(jsessionID, socket, function(err, returndata) {
