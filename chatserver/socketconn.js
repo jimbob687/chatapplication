@@ -82,7 +82,16 @@ module.exports = {
         checkJsessionID(socket, jsessionID);
         if("clientid" in socket) {
           //clientNameSearch(jsessionID, socket, dataHash);
-          startchat.processChatStart(jsessionID, socket, dataHash);
+          _startchat.processChatStart(socket.clientid, jsessionID, socket, dataHash, function(err, chatSessionID) {
+	    if(!err) {
+              // send back that we have successfully created the chat
+              io.emit('chatcreated', chatSessionID);
+            }
+            else {
+              // failed to create the chat
+              io.emit('chatcreatefail', "Unable to create chat");
+            }
+          });
         }
         else {
           adminProfile(jsessionID, socket, function(err, returndata) {

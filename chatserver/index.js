@@ -29,7 +29,7 @@ var fs = require('fs');
 
 global._authapi = require('./authapi.js');
 global._searchapi = require('./searchapi.js');
-var startchat = require('./startchat.js');
+global._startchat = require('./startchat.js');
 var socketconn = require('./socketconn.js');
 global._commonchat = require('./commonchat.js');
 
@@ -618,12 +618,12 @@ function processChatStart(sessionID, socket, dataHash) {
     inviteeIdArray = dataHash.inviteeid;
   }
 
-  startchat.requestAdminPermissions(sessionID, inviteeIdArray, function(err, returndata) {
+  _startchat.requestAdminPermissions(sessionID, inviteeIdArray, function(err, returndata) {
     if(!err) {
       logger.info("Not an error requesting admin permissions");
       var adminPermHash = null;
       if("perms" in returndata) {
-        startchat.checkAdminPermissions(returndata.perms, function(permsOK) {
+        _startchat.checkAdminPermissions(returndata.perms, function(permsOK) {
           if(permsOK) {
             logger.info("Perms are OK");
             if("clientid" in socket) {

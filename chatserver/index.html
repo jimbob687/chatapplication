@@ -275,12 +275,12 @@
         }
       });
 
-      socket.on('chatstartfail', function(returnData) {
+      socket.on('chatcreatefail', function(returnData) {
         console.log("Unable to start chat due to permission issues");
       });
 
-      socket.on('chatstart', function(returnData) {
-
+      socket.on('chatcreated', function(returnData) {
+        console.log("Chat created with chatsessionID: " + returnData);
       });
 
       $("#adminloginbtn").on('click', function(){

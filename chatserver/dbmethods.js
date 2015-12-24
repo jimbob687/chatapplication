@@ -181,11 +181,12 @@ module.exports = {
             // Now we need to iterate the clients to be added and make them part of the conversation
             connection.query('INSERT INTO conversationparticipants (clientID, conversationID, status) VALUES (?,?,?)', 
 								[clientIDkey, conversationID, 'active'], function(err,result) {
-             if(err) {
+              if(err) {
                 logger.error("Error, unable to insert sessionserver");
                 callback(true, err);
                 connection.release();
               }
+             
             });
 
           }

@@ -59,23 +59,32 @@ module.exports = {
 
   checkAdminPermissions: function(adminPermHash, callback) {
     var permsOK = processAdminPermissions(adminPermHash);
-    callback(permsOK);
+    if(permsOK) {
+      // Perms are OK, so return the permHash
+      callback(false, adminPermHash);
+    }
+    else {
+      // The perms aren't ok
+      callback(true, null);
+    }
   },
 
 
-  processChatStart: function(sessionID, socket, dataHash, callback) {
+  processChatStart: function(clientID, sessionID, socket, dataHash, callback) {
     
-    runChatStart(sessionID, socket, dataHash, function(err, returnData) {
+    // Start processing the chat
+    runChatStart(clientID, sessionID, socket, dataHash, function(err, chatSessionID) {
 
       if(!err) {
-
+        // We have successfully created the chat
+        callback(false, chatSessionID);
       }
       else {
-
+        // The chat was not successfully created
+        callback(true, null);
       }
     });
   }
-
 
 }
 
@@ -102,9 +111,9 @@ function processAdminPermissions(adminPermHash) {
  * @clientID     ID of the client
  * @socket       Socket that the request came in on
  */
-function addChatSessionDB(sessionID, clientID, socket, callback) {
+function addChatSessionDB(clientID, permHash, callback) {
 
-  _dbmethods.insertConversation(clientID, function(err, chatSessionID) {
+  _dbmethods.insertConversation(clientID, permHash, function(err, chatSessionID) {
     if(!err) {
       // have started a chat
       console.log("Chat sessionID: " + chatSessionID);
@@ -125,30 +134,32 @@ function addChatSessionDB(sessionID, clientID, socket, callback) {
  * @socket     Socket that the connection is for
  * @dataHash   HashMap of the data
  */
-function runChatStart(sessionID, socket, dataHash, callback) {
+function runChatStart(clientID, sessionID, socket, dataHash, callback) {
 
   var inviteeIdArray = [];    // list of admins to add to the chat
   if("inviteeid" in dataHash) {
     inviteeIdArray = dataHash.inviteeid;
   }
 
-  startchat.requestAdminPermissions(sessionID, inviteeIdArray, function(err, returndata) {
-    if(!err) {
+  // check that the admin has permission to add the invitees
+  _startchat.requestAdminPermissions(sessionID, inviteeIdArray, function(apiErr, returndata) {
+    if(!apiErr) {
       logger.info("Not an error requesting admin permissions");
-      var adminPermHash = null;
       if("perms" in returndata) {
-        startchat.checkAdminPermissions(returndata.perms, function(permsOK) {
-          if(permsOK) {
+        _startchat.checkAdminPermissions(returndata.perms, function(err, permHash) {
+          if(!err) {
+            // The client hash permissions to add other clients to the chat
+            logger.debug("Perm Hash: " + permHash);
             logger.info("Perms are OK");
             if("clientid" in socket) {
               var clientID = socket.clientid;
               logger.info("clientID: " + clientID);
-              addChatSessionDB(sessionID, clientID, socket, function(err, chatSessionData) {
+              addChatSessionDB(clientID, returndata.perms, function(err, chatSessionID) {
                 if(!err) {
-                  callback(false, chatSessionData);
+                  callback(false, chatSessionID);
                 }
                 else {
-                  callback(true, chatSessionData);
+                  callback(true, chatSessionID);
                 }
               });
             }
