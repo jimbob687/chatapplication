@@ -98,11 +98,38 @@ module.exports = {
             if(!err) {
               logger.info("Don't have error, so moving on");
               // create a chatsessionID for the chat room
-              processData(jsessionID, socket, dataHash);
+              //processData(jsessionID, socket, dataHash);   // This is not required
+
+              _startchat.processChatStart(socket.clientid, jsessionID, socket, dataHash, function(err, returnHash) {
+                if(!err) {
+                  // send back that we have successfully created the chat
+                  io.emit('chatcreated', returnHash);
+                }
+                else {
+                  // failed to create the chat
+                  io.emit('chatcreatefail', "Unable to create chat");
+                }
+              });
+
             }
             else {
               // need to return an error
             }
+          });
+        }
+      });
+
+
+      socket.on('keepalive', function(jsessionID, clientStatus, clientType) {
+        // The client should send a keepalive to the central app to say that they are online, used to show a user status
+        var clientID = null;
+        if("clientid" in socket) {
+          clientID = socket.clientid;
+        }
+        logger.info("Keepalive received for clientid: " + clientID + " and clientStatus: " + clientStatus);
+        if(clientID != null) {
+          _redismethods.setKeepalive(clientID, clientType, clientStatus, function(err, returnData) {
+            // insert record into db, not sure if we need to do a callback here
           });
         }
       });

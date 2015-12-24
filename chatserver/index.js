@@ -22,6 +22,8 @@ var io = require('socket.io')(http);
 
 var os = require("os");
 
+global._redis = require("redis");
+
 var mysql     =    require('mysql');
 var config    =    require('config');    // Taken from https://www.npmjs.com/package/config
 //var tnfauth = require('./tnfauth.js');
@@ -34,6 +36,7 @@ var socketconn = require('./socketconn.js');
 global._commonchat = require('./commonchat.js');
 
 global._dbmethods = require('./dbmethods.js');
+global._redismethods = require('./redismethods.js');
 
 // global.logger = require('winston'); // this is for logging
 winston = require('winston'); // this is for logging
@@ -138,10 +141,22 @@ var socketSessionHash = {};
 var chatDbConfig = config.get('chatdb.dbConfig');
 global.pool      =    mysql.createPool(chatDbConfig);
 
+// to set up connection to the redis-server
+GLOBAL.redisServerConfig = config.get('redisserver');
+global._redisclient = _redis.createClient(redisServerConfig);
+
+
 /* Taken out for now as not using this
 var fedDbConfig = config.get('feddb.dbConfig');
 global.fedpool   =    mysql.createPool(fedDbConfig);
 */
+
+global._keepaliveConfig = config.get('keepalive');
+global._maxkeepalivetime = 40;
+if("expiretime" in _keepaliveConfig) {
+  // Max seconds to store a keepalive for in redis before expiring
+  _maxkeepalivetime = _keepaliveConfig.expiretime;
+}
 
 global.sessionConfig = config.get('session');
 
@@ -218,8 +233,8 @@ function checkServerRecordInDB() {
         logger.info("No server records for server in chatservers");
         _dbmethods.insertChatServer(externalIP, serverHostName, function(err, thisChatServerID) {
           if(!err) {
-            logger.info("Record inserted for server into chatservers");
             if(thisChatServerID != null && thisChatServerID !== undefined) {
+              logger.info("Inserted new chatserverID: " + thisChatServerID + " into db");
               // set the ID of the server that was in the DB
               _chatServerID = thisChatServerID;
             }
@@ -242,6 +257,7 @@ function checkServerRecordInDB() {
       else if(serverRecords == 1) {
         if("chatserverID" in dbRows[0]) {
           _chatServerID = dbRows[0].chatserverID;
+          logger.info("Have found existing chatserverID: " + _chatServerID);
         }
         else {
           logger.error("Unable to find _chatServerID in results returned from db to determine key regarding this server, FATAL error");

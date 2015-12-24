@@ -272,8 +272,101 @@ module.exports = {
       });
 
     });
-  }
+  },
 
+
+  // Query the db to get the state of the client, i.e. online, offline, busy
+  queryClientState: function(clientID, callback) {
+
+    pool.getConnection(function(err,connection) {
+      if (err) {
+        var res = {"code" : 100, "status" : "Error in connection database"};
+        callback(true, res);
+      }   
+
+      connection.query('SELECT clientstateid, clientstate, created FROM clientstate WHERE clientID = ?', [clientID], function(err, rows) {
+        connection.release();
+        if(!err) {
+          var connectionDetails = {};
+          callback(false, rows);
+          return;
+        }
+        else {
+          logger.error("Error querying database for client session information: " + err);
+          callback(true, err);
+          return;
+        }
+      });
+
+      connection.on('error', function(err) {      
+        var res = {"code" : 100, "status" : "Error in connection database"};
+        callback(true, res)
+        return;
+      });
+
+    });
+  },
+
+
+  updateClientState: function(clientID, clientState, callback) {
+    /*
+     * Update the client state in the db, will delete any existing records and then INSERT a new record, this is for persistent storage
+     */
+
+    try {
+    
+      pool.getConnection(function(err,connection) {
+
+        if (err) {
+          var res = {"code" : 100, "status" : "Error in connection database"};
+          callback(true, res);
+        }   
+
+        connection.query('DELETE clientstate WHERE clientID = ?', [clientID], function(err, deleteResult) {
+
+          if(!err) {
+
+            // invalidate any existing associations for the chat session with other servers
+            connection.query('INSERT clientstate (clientID, clientstate, status) VALUES (?,?,?)', [clientID, clientState, 'active'], function(err,result) {
+
+              if(!err) {
+                var clientStateID = result.insertId;    // key of the conversationID that has just been created
+                connection.release();
+                callback(false, clientStateID);
+              }
+              else {
+                connection.release();
+              }
+
+              connection.on('error', function(err) {      
+                var res = {"code" : 100, "status" : "Error in connection database"};
+                callback(true, res);
+              });
+
+            });
+
+          }
+          else {
+            logger.error("Error attempting to delete state record for clientID: " + clientID + " from DB");
+            connection.release();
+            callback(true, null);
+          }
+
+          connection.on('error', function(err) {      
+            var res = {"code" : 100, "status" : "Error in connection database"};
+            callback(true, res);
+          });
+
+        });
+
+      });
+
+    }
+    catch(e) {
+      logger.error("Error, Exception attempting to update client state: " + e);
+      callback(true, null);
+    }
+  }
 
 }
 

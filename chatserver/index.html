@@ -218,6 +218,22 @@
 
     $( document ).ready(function() {
 
+      // variable for a user to check in their status, 'online', 'busy' etc
+      var userStatus = "online";
+
+      var keepaliveInterval = null;
+
+      /*
+       * Function to send a keepalive to show that the user is online, if the 
+       */
+      function sendKeepalive() {
+        console.log("Generating a keepalive");
+        var jsessionID = GetCookie('JSESSIONID'); //http://msdn.microsoft.com/en-us/library/ms533693(v=vs.85).aspx
+        if(jsessionID !== undefined) {
+          socket.emit("keepalive", jsessionID, userStatus, "browser");
+        }
+      } 
+
       var socket = io();
       socket.on('connect', function() {
         var jessionID = null;
@@ -227,6 +243,12 @@
         // var max = 500, min = 10;
         // var redisKey = Math.random() * (max - min) + min;
         socket.send({JSESSION: jsessionID});
+
+        if(keepaliveInterval != null) {
+          // clear the interval on a reconnect
+          clearInterval(keepaliveInterval);
+        }
+        keepaliveInterval = setInterval(sendKeepalive, 2000); // the interval timer to do the keepalive
       });
 
       /*  Believe this is now deprecated
@@ -280,7 +302,15 @@
       });
 
       socket.on('chatcreated', function(returnData) {
-        console.log("Chat created with chatsessionID: " + returnData);
+        var chatsessionID = null;
+        if("chatsessionid" in returnData) {
+          chatsessionID = returnData.chatsessionid;
+        }
+        var randomHash = null;
+        if("randomhash" in returnData) {
+          randomHash = returnData.randomhash;
+        }
+        console.log("Chat created with chatsessionID: " + chatsessionID + " and randomHash: " + randomHash);
       });
 
       $("#adminloginbtn").on('click', function(){
@@ -511,6 +541,7 @@
 
       $("#chatcreatebtn").on('click', function() {
         $(this).prop("disabled", true);
+        var randomHash = Math.random().toString(36).substring(7);
         var inviteeIdArray = [];
         $('.chatinviteediv').each(function() {
           inviteeIdArray.push(this.id);
@@ -519,6 +550,7 @@
         jsessionID = GetCookie('JSESSIONID'); 
         var dataHash = {};
         dataHash["inviteeid"] = inviteeIdArray;
+        dataHash["randomhash"] = randomHash;
         socket.emit('chatcreate', dataHash, jsessionID);
         $(this).prop("disabled", false);
       });

@@ -71,19 +71,31 @@ module.exports = {
 
 
   processChatStart: function(clientID, sessionID, socket, dataHash, callback) {
-    
-    // Start processing the chat
-    runChatStart(clientID, sessionID, socket, dataHash, function(err, chatSessionID) {
 
-      if(!err) {
-        // We have successfully created the chat
-        callback(false, chatSessionID);
-      }
-      else {
-        // The chat was not successfully created
-        callback(true, null);
-      }
-    });
+    var randomHash = null;
+    if("randomhash" in dataHash) {
+      randomHash = dataHash.randomhash;
+    
+      // Start processing the chat
+      runChatStart(clientID, sessionID, socket, dataHash, function(err, chatSessionID) {
+
+        if(!err) {
+          // We have successfully created the chat
+          var returnHash = {};
+          returnHash["randomhash"] = randomHash;
+          returnHash["chatsessionid"] = chatSessionID;
+          callback(false, returnHash);
+        }
+        else {
+          // The chat was not successfully created
+          callback(true, null);
+        }
+      });
+    }
+    else {
+      logger.error("Error, unable to create chat for clientID: " + clientID + " as the randomhash is missing");
+      callback(true, null);
+    }
   }
 
 }

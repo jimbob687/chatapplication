@@ -47,6 +47,15 @@
      "serverhostname": "www.example.com",
      "serverport": 443,
      "protocol": "https"
+   },
+
+   "redisserver": {
+     "host": "127.0.0.1",
+     "port": "6379"
+   },
+
+   "keepalive": {
+     "expiretime": "20"     // seconds before a keepalive record expires in redis
    }
 
 }
