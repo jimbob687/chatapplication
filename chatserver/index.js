@@ -157,6 +157,22 @@ if("expiretime" in _keepaliveConfig) {
   // Max seconds to store a keepalive for in redis before expiring
   _maxkeepalivetime = _keepaliveConfig.expiretime;
 }
+global._maxpersiststatustime = 60;
+if("statusexpiretime" in _keepaliveConfig) {
+  _maxpersiststatustime = _keepaliveConfig.statusexpiretime;
+}
+global._keepaliveBrowserKey;
+if("keepalivebrowserkey" in _keepaliveConfig) {
+  _keepaliveBrowserKey = _keepaliveConfig.keepalivebrowserkey;
+}
+global._keepaliveMobileKey;
+if("keepalivemobilekey" in _keepaliveConfig) {
+  _keepaliveMobileKey = _keepaliveConfig.keepalivemobilekey;
+}
+global._persistentStatusKey;
+if("persistentstatuskey" in _keepaliveConfig) {
+  _persistentStatusKey = _keepaliveConfig.persistentstatuskey;
+}
 
 global.sessionConfig = config.get('session');
 

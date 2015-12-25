@@ -5,6 +5,7 @@
  * A socket should have the following properties
  * clientid - ID of the client
  * jsessionid - cookie related to the socket
+ * chatsessionid - key from the chatsession table in the db
  */
 
 
@@ -61,16 +62,31 @@ module.exports = {
  
 
       socket.on('clientlookup', function(dataHash, jsessionID) {
-        logger.info("Have just got an autocomplete request: " + JSON.stringify(dataHash));
-        checkJsessionID(socket, jsessionID);
-        _commonchat.clientNameSearch(jsessionID, dataHash, function(err, completeHash) {
-          if(!err) {
-            io.emit('clientautocomplete', completeHash);
-          }
-          else {
-            // Need to add an error message to this to send back to client
-          }
-        });
+        if("clientid" in socket) {
+          logger.info("Have just got an autocomplete request: " + JSON.stringify(dataHash));
+          checkJsessionID(socket, jsessionID);
+          _commonchat.clientNameSearch(jsessionID, dataHash, function(err, completeHash) {
+            if(!err) {
+              io.emit('clientautocomplete', completeHash);
+            }
+            else {
+              // Need to add an error message to this to send back to client
+            }
+          });
+        }
+        else {
+          adminProfile(jsessionID, socket, function(err, returndata) {
+            _commonchat.clientNameSearch(jsessionID, dataHash, function(err, completeHash) {
+              if(!err) {
+                io.emit('clientautocomplete', completeHash);
+              }
+              else {
+                // Need to add an error message to this to send back to client
+              }
+            });
+            
+          });
+        }
       });
 
 
@@ -126,18 +142,50 @@ module.exports = {
         if("clientid" in socket) {
           clientID = socket.clientid;
         }
-        logger.info("Keepalive received for clientid: " + clientID + " and clientStatus: " + clientStatus);
+        logger.debug("Keepalive received for clientid: " + clientID + " and clientStatus: " + clientStatus);
         if(clientID != null) {
           _redismethods.setKeepalive(clientID, clientType, clientStatus, function(err, returnData) {
             // insert record into db, not sure if we need to do a callback here
+          });
+        }
+        else {
+          adminProfile(jsessionID, socket, function(err, returndata) {
+            if(!err) {
+              _redismethods.setKeepalive(clientID, clientType, clientStatus, function(err, returnData) {
+                // insert record into db, not sure if we need to do a callback here
+              });
+            }
           });
         }
       });
 
 
       socket.on('disconnect', function(){
+        var remClientID = null;
+        var remChatSessionID = null;
+        var remJsessionID = null;
         logger.debug('user disconnected');
-        socket.clientid = null;
+        if("clientid" in socket) {
+          remClientID = socket.clientid;
+          socket.clientid = null;
+        }
+        if("chatsessionid" in socket) {
+          remChatSessionID = socket.chatsessionid;
+          // remove the record from the db
+          _dbmethods.deleteChatSession(socket.chatsessionid, function(err, returnData) {
+            if(err) {
+              logger.error("Error attempting to remove chatsessionID: " + socket.chatsessionid + " from DB on disconnect");
+            }
+            socket.chatsessionid = null;
+          });
+        }
+        if("jsessionid" in socket) {
+          remJsessionID = socket.jsessionid;
+          socket.jessionid = null
+        }
+        if(remClientID != null && remJsessionID != null) {
+          // let's remove the session from the hash
+        }
       });
 
     });
@@ -301,6 +349,7 @@ function adminProfile(sessionID, socket, callback) {
 
                 if(socket != null) {
                   socket.clientid = clientID;   // Set the clientID on the socket
+                  socket.chatsessionid = chatsessionID;
                   /*
                   socketconn.addSessionToHash(sessionID, socket, clientID, function(err, addHashData) {
                     if(!err) {
@@ -414,5 +463,27 @@ function processMessage(sessionID, socket, dataHash) {
 
 
 
+/*
+ * Function to remove a socket from the socketClientHash
+ * remClientID - ID of the client that we are removing the socket for
+ * remJsessionID - jsessionID of the socket we are removing
+ */
+function removeSocketFromHash(remClientID, remJsessionID) {
+   // socketClientHash
+  try {
 
+    if(remClientID in socketClientHash) {
+      var thisClientHash = socketClientHash[remClientID];
+      if(remJsessionID in thisClientHash) {
+        thisClientHash[remJsessionID] = null;
+        socketClientHash[remClientID] = thisClientHash;
+      }  
+    }
+
+  }
+  catch(e) {
+    logger.error("Exception attempting to remove socket from socketClientHash for clientID: " + remClientID);
+  }
+
+}
 

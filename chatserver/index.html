@@ -234,7 +234,7 @@
         }
       } 
 
-      var socket = io();
+      var socket = io("/");
       socket.on('connect', function() {
         var jessionID = null;
         jsessionID = GetCookie('JSESSIONID'); //http://msdn.microsoft.com/en-us/library/ms533693(v=vs.85).aspx
@@ -249,6 +249,15 @@
           clearInterval(keepaliveInterval);
         }
         keepaliveInterval = setInterval(sendKeepalive, 2000); // the interval timer to do the keepalive
+      });
+
+
+      socket.on('disconnect', function() {
+        console.log("socket just disconnected");
+        if(keepaliveInterval != null) {
+          clearInterval(keepaliveInterval);
+          console.log("Clearing keepalive");
+        }
       });
 
       /*  Believe this is now deprecated

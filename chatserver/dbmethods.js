@@ -32,6 +32,50 @@ module.exports = {
     });
   },
 
+  
+  /**
+   * Function to remove a chat session from the DB, usually when a socket disconnects
+   */
+  deleteChatSession: function(chatsessionID, callback) {
+
+    try {
+    
+      pool.getConnection(function(err,connection) {
+        if (err) {
+          logger.info("Error, unable to get database connection");
+          var res = {"code" : 100, "status" : "Error in connection database"};
+          callback(true, res);
+        }   
+
+        connection.query('DELETE FROM chatsessions WHERE chatsessionid = ?', [chatsessionID], function(err,result) {
+          connection.release();
+          if(!err) {
+            callback(false, null);
+          }           
+          else {
+            logger.error("Error deleting chatsession from db: " + err);
+            callback(true, err);
+            return;
+          }
+        });
+
+        connection.on('error', function(err) {      
+          var res = {"code" : 100, "status" : "Error in connection database"};
+          callback(true, res);
+          return;
+        });
+
+      });
+    }
+    catch(e) {
+
+    }
+  },
+
+  // Query to see if server already has an active record of it's IPAddress and hostname in the DB
+  queryChatServerWithHostName: function(serverIP, serverHostName, callback) {
+
+    pool.getConnection(function(err,connection) {
   // Query to see if server already has an active record of it's IPAddress and hostname in the DB
   queryChatServerWithHostName: function(serverIP, serverHostName, callback) {
 
@@ -98,6 +142,7 @@ module.exports = {
           });
         }
         else {
+          connection.release();
           logger.error("Error, unable to insert record into chatservers: " + err);
           callback(true, err);
         }
@@ -172,7 +217,6 @@ module.exports = {
       // invalidate any existing associations for the chat session with other servers
       connection.query('INSERT conversation (clientIDcreator, status) VALUES (?,?)', [clientID, 'active'], function(err,result) {
 
-
         if(!err) {
           var conversationID = result.insertId;    // key of the conversationID that has just been created
           for(var clientIDkey in permHash) {
@@ -183,8 +227,8 @@ module.exports = {
 								[clientIDkey, conversationID, 'active'], function(err,result) {
               if(err) {
                 logger.error("Error, unable to insert sessionserver");
-                callback(true, err);
                 connection.release();
+                callback(true, err);
               }
              
             });
@@ -256,12 +300,10 @@ module.exports = {
         if(!err) {
           var connectionDetails = {};
           callback(false, rows);
-          return;
         }
         else {
           logger.error("Error querying database for client session information: " + err);
           callback(true, err);
-          return;
         }
       });
 
@@ -278,33 +320,40 @@ module.exports = {
   // Query the db to get the state of the client, i.e. online, offline, busy
   queryClientState: function(clientID, callback) {
 
-    pool.getConnection(function(err,connection) {
-      if (err) {
-        var res = {"code" : 100, "status" : "Error in connection database"};
-        callback(true, res);
-      }   
+    try {
 
-      connection.query('SELECT clientstateid, clientstate, created FROM clientstate WHERE clientID = ?', [clientID], function(err, rows) {
-        connection.release();
-        if(!err) {
-          var connectionDetails = {};
-          callback(false, rows);
-          return;
-        }
-        else {
-          logger.error("Error querying database for client session information: " + err);
-          callback(true, err);
-          return;
-        }
+      pool.getConnection(function(err,connection) {
+        if (err) {
+          var res = {"code" : 100, "status" : "Error in connection database"};
+          callback(true, res);
+        }   
+
+        logger.debug("About to query db for clientstate for clientID: " + clientID);
+        connection.query('SELECT clientstateid, clientstate, created FROM clientstate WHERE clientID = ?', [clientID], function(err, rows) {
+          connection.release();
+          if(!err) {
+            logger.debug("Rows returned for clientID: " + clientID + "    - " + rows.length);
+            var connectionDetails = {};
+            callback(false, rows);
+          }
+          else {
+            logger.error("Error querying database for client session information: " + err);
+            callback(true, err);
+          }
+        });
+
+        connection.on('error', function(err) {      
+          var res = {"code" : 100, "status" : "Error in connection database"};
+          callback(true, res)
+        });
+
       });
 
-      connection.on('error', function(err) {      
-        var res = {"code" : 100, "status" : "Error in connection database"};
-        callback(true, res)
-        return;
-      });
-
-    });
+    }
+    catch(e) {
+      logger.error("Exception attempting to query db for persistent client state for clientID: " + clientID + ". " + e);
+      callback(true, null);
+    }
   },
 
 
@@ -322,20 +371,19 @@ module.exports = {
           callback(true, res);
         }   
 
-        connection.query('DELETE clientstate WHERE clientID = ?', [clientID], function(err, deleteResult) {
+        connection.query('DELETE FROM clientstate WHERE clientID = ?', [clientID], function(err, deleteResult) {
 
           if(!err) {
 
             // invalidate any existing associations for the chat session with other servers
-            connection.query('INSERT clientstate (clientID, clientstate, status) VALUES (?,?,?)', [clientID, clientState, 'active'], function(err,result) {
+            connection.query('INSERT INTO clientstate (clientID, clientstate, status) VALUES (?,?,?)', [clientID, clientState, 'active'], function(err,result) {
 
+              connection.release();
               if(!err) {
                 var clientStateID = result.insertId;    // key of the conversationID that has just been created
-                connection.release();
                 callback(false, clientStateID);
               }
               else {
-                connection.release();
               }
 
               connection.on('error', function(err) {      
@@ -347,7 +395,7 @@ module.exports = {
 
           }
           else {
-            logger.error("Error attempting to delete state record for clientID: " + clientID + " from DB");
+            logger.error("Error attempting to delete state record for clientID: " + clientID + " from DB. " + err);
             connection.release();
             callback(true, null);
           }
@@ -369,4 +417,10 @@ module.exports = {
   }
 
 }
+
+
+
+
+
+
 

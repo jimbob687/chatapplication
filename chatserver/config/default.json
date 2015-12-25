@@ -55,7 +55,11 @@
    },
 
    "keepalive": {
-     "expiretime": "20"     // seconds before a keepalive record expires in redis
+     "expiretime": "20",     // seconds before a keepalive record expires in redis
+     "statusexpiretime": "60",    // seconds before the client status record in redis expires
+     "keepalivebrowserkey": "kabr",    // redis key for the browser keepalive
+     "keepalivemobilekey": "kamo",     // redis key for the mobile keepalive
+     "persistentstatuskey": "clstat"    // redis key for the persistent state of a client e.g. recording online etc
    }
 
 }

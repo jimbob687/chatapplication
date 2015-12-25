@@ -13,59 +13,273 @@ module.exports = {
      *      - clstat
      *            Valid values are   'online', 'busy', 'offline'
      * Client needs to change this status themselves explicitly
-     * This value is persistent in redis and won't time out
+     * This value is persistent in db and placed in redis with a timeout, for a client to be seen as online, still require having valid keepalive in the db
      */
 
     var clientKey = null;
 
     if(clientType == "browser") {
-      clientKey = "kabr:" + clientID;
+      clientKey = _keepaliveBrowserKey + ":" + clientID;
     }
     else if(clientType == "mobile") {
-      clientKey = "kamo:" + clientID;
+      clientKey = _keepaliveMobileKey + ":" + clientID;
     }
     else {
       logger.error("Error, unrecognized client type: " + clientType + " processing keepalive for clientID: " + clientID);
       callback(true, "Unrecognized client type");
     }
 
-    var clientStatusKey = "clstat:" + clientID;
-    _redisclient.get(clientStatusKey, function(err, clientStatusPersist) {
-      if(!err) {
-        logger.info("Client status is: " + clientStatusPersist);
-        if(clientStatusPersist == null) {
-          // we need to set the persistent status
-        }
-        else {
+    var clientStatePersist = null;
+    // This is the persistent storage of the client status (although does expire and redraws from db)
+    var clientStateKey = _persistentStatusKey + ":" + clientID;
 
+    _redisclient.get(clientStateKey, function(err, clientStatePersist) {
+      if(!err) {
+        logger.debug("Client status is: " + clientStatePersist + " for clientID: " + clientID);
+        if(clientStatePersist == null) {
+          // we need to query the persistent state from the db
+          fetchClientStateDB(clientID, clientStateKey, function(err, returnClientStatePersist) {
+            if(!err) {
+              clientStatePersist = returnClientStatePersist;
+            }
+            else {
+              logger.error("Error attempting to get and set state for clientID: " + clientID + " from db");
+            }
+          });
         }
+      }
+      else {
+        logger.error("Error attempting to get the persistent client key from redis for clientID: " + clientID);       
       }
     });
 
-    _redisclient.get(clientKey, function(err, reply) {
-      if(!err) {
-        logger.info("ClientID: " + clientID + " redis keepalive: " + reply);
-        var redisValue = clientStatus;
-        // set the keepalive key in redis
-        //_redisclient.set(clientKey, redisValue, _redis.print);
-        _redisclient.set(clientKey, redisValue, function(err, reply) {
-          if(!err) {
-            logger.info("Reply from redis: " + reply);
+    
+    if(clientStatePersist != null) {
+      // set the keepalive key in redis using the persistent state
+      _redisclient.set(clientKey, clientStatePersist, function(err, reply) {
+        if(!err) {
+          logger.info("Reply from redis: " + reply);
+        }
+        else {
+          logger.error("Error trying to get keepalive from redis");
+        }
+      });
+      // now set the key to expire
+      _redisclient.expire(clientKey, _maxkeepalivetime, function(err, expireReply) {
+        if(err) {
+          logger.error("Error attempting to set expire time for clientID: " + clientID + " keepalive");
+        }
+      });
+    }
+
+    if(clientStatePersist != null) {
+      callback(false, null);
+    }
+    else {
+      callback(true, null);
+    }
+
+  },
+
+
+
+  fetchClientStatus: function(clientID, callback) {
+    /*
+     * Get the current status of a client from redis
+     * Will get the state for browser and mobile
+     * Will return a hash with the status for each browser and mobile
+     */
+
+    try {
+
+      var returnHash = {};
+
+      var clientKeyBr = "kabr:" + clientID;   // status for browser
+      var clientMobBr = "kamo:" + clientID;   // status for mobile
+
+      _redisclient.get(clientKeyBr, function(err, reply) {
+        // get status for browser
+        if(!err) {
+          if(reply != null) {
+            returnHash['browser'] = reply;
           }
           else {
-            logger.error("Error trying to get keepalive from redis");
+            returnHash['browser'] = "offline";
           }
-        });
-        // now set the key to expire
-        _redisclient.expire(clientKey, _maxkeepalivetime, _redis.print);
+        }
+        else { 
+          logger.error("Error attempting to get the browser state of clientID: " + clientID + " from redis");
+          returnHash['browser'] = "unknown";
+          finalState = "unknown";
+        }
+      });
+
+      _redisclient.get(clientMobBr, function(err, reply) {
+        // get status for browser
+        if(!err) {
+          if(reply != null) {
+            returnHash['mobile'] = reply;
+          }
+          else {
+            returnHash['mobile'] = "offline";
+          }
+        }
+        else { 
+          logger.error("Error attempting to get the mobile state of clientID: " + clientID + " from redis");
+          returnHash['mobile'] = "unknown";
+        }
+      });
+
+      callback(false, returnHash);
+    
+    }
+    catch(e) {
+      logger.error("Exception attempting to get status for clientID: " + clientID + " from redis. " + e);
+      callback(true, null);
+    }
+
+  }
+
+
+}
+
+
+/* 
+ * Function to set the client state in redis being the persistent key
+ */
+function setClientStateRedis(clientID, clientStateKey, clientStatePersist, callback) {
+
+  try {
+
+    _redisclient.set(clientStateKey, clientStatePersist, function(err, persistReply) {
+      if(!err) {
+        if(persistReply == "OK") {
+          _redisclient.expire(clientStateKey, _maxpersiststatustime, function(err, _persistExpireReply) {
+            // set the expiry of the key in redis 
+            if(err) {
+              logger.error("Error attempting set the expire time for the persistent client state for clientID: " + clientID);
+            }
+          });
+          callback(false);
+        }
+        else {
+          logger.error("Error attempting to set the persistent state for clientID: " + clientID + " in redis, OK was not returned");
+          callback(true);
+        }
       }
       else {
-        logger.error("Error attempting to retrieve key from redis for clientID: " + clientID);
-        callback(true, null);
+        logger.error("Error attempting to set the persistent state for clientID: " + clientID + " in redis");
+        callback(true);
       }
     });
 
   }
+  catch(e) {
+    logger.error("Exception attempting to add the persistent client state for clientID: " + clientID + " to redis");
+    callback(true);
+  }
+}
+
+
+/*
+ * Function to add persistent client state to db, will call the dbmethods function
+ */
+function setClientStateDB(clientID, clientStatePersist, callback) {
+
+  try {
+
+    _dbmethods.updateClientState(clientID, clientStatePersist, function(err, returnData) {
+      if(!err) {
+        callback(false, null);
+      }
+      else {
+        logger.error("Error attempting to add persistent client state to db for clientID: " + clientID);
+        callback(true, null);
+      }
+
+    });
+
+  }
+  catch(e) {
+    logger.error("Exception attempting to add the persistent client state to db for clientID: " + clientID + ". " + e);
+    callback(true, null);
+  }
 
 }
+
+
+/*
+ * Function to get the client state from the db and then set it in redis for the persistent key
+ */
+function fetchClientStateDB(clientID, clientStateKey, callback) {
+
+  try {
+
+    var clientStatePersist = null;
+
+    _dbmethods.queryClientState(clientID, function(err, clientStateRows) {
+      if(!err) {
+        logger.debug("Not error retrieving data for persistent client state for clientID: " + clientID);
+        if(clientStateRows.length == 0) {
+          logger.debug("Querying db for clientID: " + clientID + " persistent state no records returned");
+          // nothing came back from db, so need to set the db record to online which is the default
+          clientStatePersist = "online";
+          // And add to the db
+          setClientStateDB(clientID, clientStatePersist, function(err, dbInsertReturnData) {
+            if(err) {
+              logger.error("Error attempting to add the persistent client state to the db for clientID: " + clientID);
+            }
+          });
+        }
+        else if(clientStateRows.length > 0) {
+          logger.debug("Querying db for clientID: " + clientID + " persistent state records returned: " + clientStateRows.length);
+          // get the results from the db result set
+          if(clientStateRows.length > 1) {
+            logger.error("Error, received: " + clientStateRows.length + " from db querying client state when only max one should be returned");
+          }
+
+          var resultRow = clientStateRows[0];
+          if("clientstate" in resultRow) {
+            // grab the value from the db
+            clientStatePersist = resultRow.clientstate;
+            logger.debug("Clientstate: " + clientStatePersist + " for clientID: " + clientID);
+          }
+          else {
+            logger.error("Error, clientstate is not in return row for clientID: " + clientID);
+          }
+
+        }
+
+        if(clientStatePersist != null) {
+          // add the persistent client state to redis
+          setClientStateRedis(clientID, clientStateKey, clientStatePersist, function(err) {
+            if(err) {
+              logger.error("Error attempting to add persistent client state to redis for clientID: " + clientID);
+            }
+            else {
+              callback(false, clientStatePersist); 
+            }
+          });
+        }
+        else {
+          logger.error("Error, unable to determine persistent client status for clientID: " + clientID + " to place into redis"); 
+          callback(true, null);
+        }
+      }
+      else {
+        logger.error("Error attempting to query persistent client state from db for clientID: " + clientID);
+        callback(true, null);
+      } 
+    });
+
+  }
+  catch(e) {
+    logger.error("Exception attempting to query and set the client state in the db for clientID: " + clientID + ". " + e);
+    callback(true, null);
+  }
+
+}
+
+
+
 
