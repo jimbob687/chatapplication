@@ -13,6 +13,10 @@ var crypto = require('crypto');
 
 var moment = require('moment');
 
+//var emitter = require('events');
+//emitter.setMaxListeners(100);
+
+
 global.traceback = require('traceback');
 
 var path = require('path');
@@ -140,6 +144,7 @@ var socketSessionHash = {};
 
 var chatDbConfig = config.get('chatdb.dbConfig');
 global.pool      =    mysql.createPool(chatDbConfig);
+pool.setMaxListeners(100);     // This is to increase the max allowed listeners
 
 // to set up connection to the redis-server
 GLOBAL.redisServerConfig = config.get('redisserver');

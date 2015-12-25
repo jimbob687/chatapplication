@@ -10,18 +10,26 @@ module.exports = {
         callback(true, res);
       }   
 
-      connection.query('INSERT INTO chatsessions (jsessionid, clientID, chatserverID, expiretime) VALUES (?,?,?,(now() + INTERVAL ? SECOND))', [jsessionid, clientID, _chatServerID, sessionConfig.maxagesecs], function(err,result) {
+      try {
+
+        connection.query('INSERT INTO chatsessions (jsessionid, clientID, chatserverID, expiretime) VALUES (?,?,?,(now() + INTERVAL ? SECOND))', [jsessionid, clientID, _chatServerID, sessionConfig.maxagesecs], function(err,result) {
+          connection.release();
+          if(!err) {
+            var chatsessionID = result.insertId;    // key for the record that has just been inserted
+            callback(false, chatsessionID);
+          }           
+          else {
+            logger.error("Error inserting chatsession into db: " + err);
+            callback(true, err);
+          }
+        });
+
+      }
+      catch(e) {
+        logger.error("Exception attempting to insert chat session " + e);
         connection.release();
-        if(!err) {
-          var chatsessionID = result.insertId;    // key for the record that has just been inserted
-          callback(false, chatsessionID);
-        }           
-        else {
-          logger.error("Error inserting chatsession into db: " + err);
-          callback(true, err);
-          return;
-        }
-      });
+        callback(true, err);
+      }
 
       connection.on('error', function(err) {      
         var res = {"code" : 100, "status" : "Error in connection database"};
@@ -33,12 +41,10 @@ module.exports = {
   },
 
   
-  /**
+  /*
    * Function to remove a chat session from the DB, usually when a socket disconnects
    */
   deleteChatSession: function(chatsessionID, callback) {
-
-    try {
     
       pool.getConnection(function(err,connection) {
         if (err) {
@@ -66,17 +72,12 @@ module.exports = {
         });
 
       });
-    }
-    catch(e) {
-
-    }
   },
 
-  // Query to see if server already has an active record of it's IPAddress and hostname in the DB
-  queryChatServerWithHostName: function(serverIP, serverHostName, callback) {
 
-    pool.getConnection(function(err,connection) {
-  // Query to see if server already has an active record of it's IPAddress and hostname in the DB
+  /* 
+   * Query to see if server already has an active record of it's IPAddress and hostname in the DB
+   */
   queryChatServerWithHostName: function(serverIP, serverHostName, callback) {
 
     pool.getConnection(function(err,connection) {
