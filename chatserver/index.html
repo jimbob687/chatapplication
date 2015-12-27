@@ -248,7 +248,7 @@
           // clear the interval on a reconnect
           clearInterval(keepaliveInterval);
         }
-        keepaliveInterval = setInterval(sendKeepalive, 2000); // the interval timer to do the keepalive
+        keepaliveInterval = setInterval(sendKeepalive, 40000); // the interval timer to do the keepalive
       });
 
 

@@ -140,6 +140,72 @@ function addChatSessionDB(clientID, permHash, callback) {
 }
 
 
+
+/*
+ * Query the DB to see if there is an existing chat session for clients
+ */
+function queryChatSessionDB(clientID, permHash, callback) {
+
+  try {
+
+    _dbmethods.searchConversation(clientID, permHash, function(err, returnData, recordsFound) {
+
+      if(!err) {
+        if(returnData != null && recordsFound == 1) {
+          if("conversationID" in returnData) {
+            var conversationID = returnData["conversationID"];
+            logger.debug("Returning conversationID: " + conversationID + " to clientID: " + clientID);
+            callback(false, conversationID);
+          }
+          else {
+            logger.error("Error, have request for chat session for clientID: " + clientID + " found record in DB but no conversationID. Result: " + JSON.stringify(returnData));
+            callback(true, null);
+          }
+
+        }
+        else if(recordsFound == 0) {
+          // need to create a chat session as none exists at the moment
+          addChatSessionDB(clientID, returndata.perms, function(err, chatSessionID) {
+            if(!err) {
+              callback(false, chatSessionID);
+            }
+            else {
+              callback(true, chatSessionID);
+            }
+          });
+
+        }
+        else if(recordsFound > 1) {
+           // we have an error, there should only be a single record returned, probably needs to be cleaned up
+          if("conversationID" in returnData) {
+            var conversationID = returnData["conversationID"];
+            logger.debug("Returning conversationID: " + conversationID + " to clientID: " + clientID);
+            callback(false, conversationID);
+          }
+          else {
+            logger.error("Error, have request for chat session for clientID: " + clientID + " found record in DB but no conversationID");
+            callback(true, null);
+          }
+
+        }
+
+      }
+      else {
+        logger.error("Error attempting to query chat session for clientID: " + clientID);
+        callback(true, null);
+
+      }
+    });
+
+  }
+  catch(e) {
+    logger.error("Exception attempting to query chat session for clientID: " + clientID + ". " + e);
+    callback(true, null);
+  }
+
+}
+
+
 /**
  * Start a chat search
  * @sessionID  ID of the session
@@ -166,14 +232,11 @@ function runChatStart(clientID, sessionID, socket, dataHash, callback) {
             if("clientid" in socket) {
               var clientID = socket.clientid;
               logger.info("clientID: " + clientID);
-              addChatSessionDB(clientID, returndata.perms, function(err, chatSessionID) {
-                if(!err) {
-                  callback(false, chatSessionID);
-                }
-                else {
-                  callback(true, chatSessionID);
-                }
+
+              queryChatSessionDB(clientID, permHash, function(err, chatSessionID) {
+                callback(true, chatSessionID);
               });
+
             }
             else {
               callback(true, "Unable to verify permissions");

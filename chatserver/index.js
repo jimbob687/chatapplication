@@ -156,28 +156,33 @@ var fedDbConfig = config.get('feddb.dbConfig');
 global.fedpool   =    mysql.createPool(fedDbConfig);
 */
 
-global._keepaliveConfig = config.get('keepalive');
+global._redisKeysConfig = config.get('rediskeys');
 global._maxkeepalivetime = 40;
-if("expiretime" in _keepaliveConfig) {
+if("expiretime" in _redisKeysConfig) {
   // Max seconds to store a keepalive for in redis before expiring
-  _maxkeepalivetime = _keepaliveConfig.expiretime;
+  _maxkeepalivetime = _redisKeysConfig.expiretime;
 }
 global._maxpersiststatustime = 60;
-if("statusexpiretime" in _keepaliveConfig) {
-  _maxpersiststatustime = _keepaliveConfig.statusexpiretime;
+if("statusexpiretime" in _redisKeysConfig) {
+  _maxpersiststatustime = _redisKeysConfig.statusexpiretime;
 }
 global._keepaliveBrowserKey;
-if("keepalivebrowserkey" in _keepaliveConfig) {
-  _keepaliveBrowserKey = _keepaliveConfig.keepalivebrowserkey;
+if("keepalivebrowserkey" in _redisKeysConfig) {
+  _keepaliveBrowserKey = _redisKeysConfig.keepalivebrowserkey;
 }
 global._keepaliveMobileKey;
-if("keepalivemobilekey" in _keepaliveConfig) {
-  _keepaliveMobileKey = _keepaliveConfig.keepalivemobilekey;
+if("keepalivemobilekey" in _redisKeysConfig) {
+  _keepaliveMobileKey = _redisKeysConfig.keepalivemobilekey;
 }
 global._persistentStatusKey;
-if("persistentstatuskey" in _keepaliveConfig) {
-  _persistentStatusKey = _keepaliveConfig.persistentstatuskey;
+if("persistentstatuskey" in _redisKeysConfig) {
+  _persistentStatusKey = _redisKeysConfig.persistentstatuskey;
 }
+global._chatMsgCountKey;
+if("chatmsgcountkey" in _redisKeysConfig) {
+  _chatMsgCountKey = _redisKeysConfig.chatmsgcountkey;
+}
+
 
 global.sessionConfig = config.get('session');
 

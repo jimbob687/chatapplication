@@ -203,54 +203,135 @@ module.exports = {
   },
 
 
+  searchConversation: function(clientID, permHash, callback) {
+
+    try {
+
+      // generate a sum of the conversation participants
+      var clientidsum = genClientIDkey( clientID,  permHash );
+
+      var inStmt = buildInStatement( Object.keys(permHash).length + 1 );
+    
+      pool.getConnection(function(err,connection) {
+
+        if (err) {
+          var res = {"code" : 100, "status" : "Error in connection database"};
+          callback(true, res);
+        }   
+
+        // the query parameters that are for the query
+        var selectArray = [];
+        selectArray.push(clientID);
+        for(var clientIDkey in permHash) {
+          selectArray.push(clientIDkey);
+        }
+        selectArray.push(clientidsum);
+        selectArray.push("active");
+
+        connection.query('SELECT co.conversationID, co.status, co.created FROM conversation co LEFT OUTER JOIN conversationparticipants cp ON co.conversationID = cp.conversationID AND cp.clientID IN ' + inStmt + ' WHERE co.clientidsum = ? AND co.status = ? GROUP BY co.conversationID', selectArray, function(err, rows) {
+
+          connection.release();
+          if(!err) {
+            if(rows.length == 0) {
+              callback(false, null, 0);
+            }
+            else if(rows.length > 1) {
+              // this is an error, there should only be 1 result, return the first one, will need to write something to clean this up
+              callback(false, rows[0], rows.length);
+            }
+            else if(rows.length == 1) {
+              // found the conversation
+              callback(false, rows[0], rows.length);
+            }
+
+          }
+          else {
+            logger.error("Error querying database for conversation information: " + err);
+            callback(true, err);
+          }
+        });
+
+      });
+      
+    }
+    catch(e) {
+      callback(true, e);
+    }
+
+  },
+
+
   // Function to create a conversation in the db and add the clientIDs, this is for a direct chat, not a room/hacienda
   // clientID - ID of the client creating the conversation
   // chatconversionID  - ID of the chat conversation that was just created
   insertConversation: function(clientID, permHash, callback) {
+
+    try {
+
+      // generate a sum of the conversation participants
+      var clientidsum = genClientIDkey( clientID,  permHash );
     
-    pool.getConnection(function(err,connection) {
+      pool.getConnection(function(err,connection) {
 
-      if (err) {
-        var res = {"code" : 100, "status" : "Error in connection database"};
-        callback(true, res);
-      }   
+        if (err) {
+          var res = {"code" : 100, "status" : "Error in connection database"};
+          callback(true, res);
+        }   
 
-      // invalidate any existing associations for the chat session with other servers
-      connection.query('INSERT conversation (clientIDcreator, status) VALUES (?,?)', [clientID, 'active'], function(err,result) {
+        // invalidate any existing associations for the chat session with other servers
+        connection.query('INSERT conversation (clientIDcreator, clientidsum, status) VALUES (?,?,?)', [clientID, clientidsum, 'active'], function(err,result) {
 
-        if(!err) {
-          var conversationID = result.insertId;    // key of the conversationID that has just been created
-          for(var clientIDkey in permHash) {
-            var clientPermHash = permHash[clientIDkey];    // e.g. "26":{"permission":true,"permtype":"commonclinic"}, clientIDkey is 26
+          if(!err) {
+            var conversationID = result.insertId;    // key of the conversationID that has just been created
 
-            // Now we need to iterate the clients to be added and make them part of the conversation
+            // Add the client into the db
             connection.query('INSERT INTO conversationparticipants (clientID, conversationID, status) VALUES (?,?,?)', 
-								[clientIDkey, conversationID, 'active'], function(err,result) {
+				[clientID, conversationID, 'active'], function(err,result) {
               if(err) {
                 logger.error("Error, unable to insert sessionserver");
                 connection.release();
                 callback(true, err);
               }
-             
             });
 
-          }
-          connection.release();
-          callback(false, conversationID);
-        }
-        else {
-          connection.release();
-        }
 
-        connection.on('error', function(err) {      
-          var res = {"code" : 100, "status" : "Error in connection database"};
-          callback(true, res);
-          return;
+            for(var clientIDkey in permHash) {
+              var clientPermHash = permHash[clientIDkey];    // e.g. "26":{"permission":true,"permtype":"commonclinic"}, clientIDkey is 26
+
+              // Now we need to iterate the clients to be added and make them part of the conversation
+              connection.query('INSERT INTO conversationparticipants (clientID, conversationID, status) VALUES (?,?,?)', 
+						[clientIDkey, conversationID, 'active'], function(err,result) {
+                if(err) {
+                  logger.error("Error, unable to insert sessionserver");
+                  connection.release();
+                  callback(true, err);
+                }
+             
+              });
+
+            }
+            connection.release();
+            callback(false, conversationID);
+          }
+          else {
+            connection.release();
+          }
+
+          connection.on('error', function(err) {      
+            var res = {"code" : 100, "status" : "Error in connection database"};
+            callback(true, res);
+            return;
+          });
+
         });
 
       });
 
-    });
+    }
+    catch(e) {
+      logger.error("Exception attempting to insert conversation into db for clientID: " + clientID + ". " + e);
+      callback(true, null);
+    }
   },
 
 
@@ -415,13 +496,110 @@ module.exports = {
       logger.error("Error, Exception attempting to update client state: " + e);
       callback(true, null);
     }
+  },
+
+
+  // Query the database for the latest chat message count in a conversation, usually so we can populate the redis counter
+  queryChatMessageCount: function(conversationID, callback) {
+
+    pool.getConnection(function(err,connection) {
+      if (err) {
+        var res = {"code" : 100, "status" : "Error in connection database"};
+        callback(true, res);
+      }   
+
+      connection.query('SELECT messagecounter FROM conversationmessages WHERE conversationID = ? ORDER BY messagecounter DESC LIMIT 1', [conversationID], function(err, rows) {
+        connection.release();
+        if(!err) {
+          if(rows.length == 0) {
+            // we don't have any messages yet so send back 0
+            callback(false, 0)
+          }
+          else if(rows.length > 0) {
+            var row = rows[0];    
+            if(rows.length > 1) {
+              logger.error("Error, recevied a row count of: " + rows.length + " getting message counter for counversationID: " + conversationID);
+            }
+            if("messagecounter" in row) {
+              callback(false, row.messagecounter);
+            }
+            else {
+              logger.error("Error, messagecounterID is not found in results getting message counter for conversionID: " conversationID);
+              callback(true, null);
+            }
+          }
+        }
+        else {
+          logger.error("Error querying database for message counter for conversationID: " + conversationID + ". "  + err);
+          callback(true, err);
+          return;
+        }
+      });
+
+      connection.on('error', function(err) {      
+        var res = {"code" : 100, "status" : "Error in connection database"};
+        callback(true, res)
+        return;
+      });
+
+    });
+  },
+  
+}
+
+
+
+
+/*
+ * Function to calculate the total clientIDs to add as a key in the database to index a conversation to make it easy to search in the future
+ */
+function genClientIDkey( clientID, dataHash ) {
+
+  try {
+    logger.debug("In genClientIDkey");
+
+    var clientidSum = parseInt(clientID);
+
+    for(var clientIDkey in dataHash) {
+      clientidSum += parseInt(clientIDkey);
+    }
+
+    return clientidSum;
+  }
+  catch(e) {
+    logger.error("Exception attempting to calc clientIDsum. " + e);
+    return null;
   }
 
 }
 
 
 
+/*
+ * Function to create an IN statement for a SELECT
+ */
+function buildInStatement( elementLength ) {
 
+  var inStr = "(";
 
+  try {  
+    var firstDone = false;
+    for(var i = 0; i < elementLength; i++) {
+      if(firstDone) {
+        inStr += ",?";
+      }
+      else {
+        inStr += "?";
+        firstDone = true;
+      }
+    }
 
+    inStr += ")";
+    return inStr;
+  }
+  catch(e) {
+    logger.error("Exception attempting to create build in statement " + e);
+    return null;
+  }
 
+}
