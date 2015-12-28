@@ -42,6 +42,8 @@ global._commonchat = require('./commonchat.js');
 global._dbmethods = require('./dbmethods.js');
 global._redismethods = require('./redismethods.js');
 
+global._chatoperations = require('./chatoperations.js');
+
 // global.logger = require('winston'); // this is for logging
 winston = require('winston'); // this is for logging
 global.logger = new (winston.Logger)({
@@ -183,6 +185,7 @@ if("chatmsgcountkey" in _redisKeysConfig) {
   _chatMsgCountKey = _redisKeysConfig.chatmsgcountkey;
 }
 
+global._messageLimit = config.get(messagelimit);
 
 global.sessionConfig = config.get('session');
 

@@ -12,6 +12,63 @@ module.exports = {
 
 
 /*
+ * Retrieve chat messages for a conversation
+ * conversationID - the conversation that we want to retrieve the messages for
+ * startMessageCounter - Counter of the newest message that we want, if null will start with the latest message
+ * endMessageCounter - Counter of the end message, of null if we just want the limit
+ * numberMsgs - Number of messages that we want to retrieve (limit), default is set in config
+ */
+function retrieveChatMessages(conversationID, startMessageCounter, endMessageCounter, numberMsgs, callback) {
+
+  try {
+    if(numberMsgs == null) {
+      // need to set to the default
+      numberMsgs = _messageLimit;
+    }
+
+    var dbQuery = null;
+    var dbParamArray = [];     // This is the array that will be used for the query
+    dbParamArray.push(conversationID);
+    // let's create the query that we will use based on the 
+    if(startMessageCounter == null) {
+      dbQuery = "SELECT cm.chatmessageID, cm.conversationID, cm.messagecounter, cm.created, cm.status FROM chatmessages cm WHERE cm.conversationID = ? ORDER BY cm.messagecounter DESC LIMIT ?";
+      dbParamArray.push(numberMsgs);
+    }
+    else if(startMessageCounter != null && endMessageCounter == null) {
+      dbQuery = "SELECT cm.chatmessageID, cm.conversationID, cm.messagecounter, cm.created, cm.status FROM chatmessages cm WHERE cm.conversationID = ? AND cm.messagecounter <= ? ORDER BY cm.messagecounter DESC LIMIT ?";
+      dbParamArray.push(startMessageCounter);
+      dbParamArray.push(numberMsgs);
+    }
+    else if(startMessageCounter != null && endMessageCounter != null) {
+      dbQuery = "SELECT cm.chatmessageID, cm.conversationID, cm.messagecounter, cm.created, cm.status FROM chatmessages cm WHERE cm.conversationID = ? AND cm.messagecounter <= ? AND cm.messagecounter >= ? ORDER BY cm.messagecounter";
+      dbParamArray.push(startMessageCounter);
+      dbParamArray.push(endMessageCounter);
+    }
+    else {
+      logger.error("Unrecognized combination to form message query, conversationID: " + conversationID + " startMessageCounter: " + startMessageCounter + " endMessageCounter: " + endMessageCounter + " numberMsgs: " + numberMsgs);
+    }
+
+    if(dbQuery != null) {
+      _dbmethods.queryChatMessages(dbQuery, dbParamArray, conversationID, function(err, rows) {
+        if(!err) {
+          // we need to process the messages
+        }
+        else {
+          logger.error("Error attempting to query messages for conversationID: " + conversationID);
+          callback(true, null);
+        }
+      });
+    }
+
+  }
+  catch(e) {
+
+  }
+
+});
+
+
+/*
  * Function to increment the messge counter for a conversation in redis
  */
 function incrementMsgCount(clientID, conversationID, callback) {

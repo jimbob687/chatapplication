@@ -234,7 +234,12 @@ function runChatStart(clientID, sessionID, socket, dataHash, callback) {
               logger.info("clientID: " + clientID);
 
               queryChatSessionDB(clientID, permHash, function(err, chatSessionID) {
-                callback(true, chatSessionID);
+                if(!err) {
+                  callback(false, chatSessionID);
+                }
+                else {
+                  callback(true, null);
+                }
               });
 
             }

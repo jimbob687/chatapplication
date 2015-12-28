@@ -524,7 +524,7 @@ module.exports = {
               callback(false, row.messagecounter);
             }
             else {
-              logger.error("Error, messagecounterID is not found in results getting message counter for conversionID: " conversationID);
+              logger.error("Error, messagecounterID is not found in results getting message counter for conversionID: " + conversationID);
               callback(true, null);
             }
           }
@@ -545,6 +545,37 @@ module.exports = {
     });
   },
   
+  // Query the database for a conversation's chat messages
+  queryChatMessages: function(dbQuery, dbParamArray, conversationID, callback) {
+
+    pool.getConnection(function(err,connection) {
+      if (err) {
+        var res = {"code" : 100, "status" : "Error in connection database"};
+        callback(true, res);
+      }   
+
+      connection.query(dbQuery, dbParamArray, function(err, rows) {
+        connection.release();
+        if(!err) {
+          callback(false, rows);
+        }
+        else {
+          logger.error("Error querying database for chat messages for conversationID: " + conversationID + ". "  + err);
+          callback(true, err);
+          return;
+        }
+      });
+
+      connection.on('error', function(err) {      
+        var res = {"code" : 100, "status" : "Error in connection database"};
+        callback(true, res)
+        return;
+      });
+
+    });
+  }
+
+
 }
 
 

@@ -61,6 +61,8 @@
      "keepalivemobilekey": "kamo",     // redis key for the mobile keepalive
      "persistentstatuskey": "clstat",    // redis key for the persistent state of a client e.g. recording online etc
      "chatmsgcountkey": "chatmsgcnt"           // redis key for a conversationID
-   }
+   },
+
+   "messagelimit": 100,       // default messages to send on each request
 
 }
