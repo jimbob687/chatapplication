@@ -206,6 +206,51 @@ function queryChatSessionDB(clientID, permHash, callback) {
 }
 
 
+/*
+ * Get the profile information for a client. Will try redis first, if not in redis then query api and populate redis
+ */
+function fetchClientProfile(targetClientID, sessionID) {
+
+  try {
+
+    _redismethods.fetchClientProfile(targetClientID, function(err, profile) {
+      if(!err) {
+        if(profileJson == null) {
+          // nothing in redis so need to call the api
+          _profileapi.queryClientProfileAPI(sessionID, targetClientID, function(err, profileJson) {
+            if(!err) {
+              if(profileJson == null) {
+                // we have a problem at this point
+              }
+              else {
+                // let's add it to redis
+                _redismethods.addClientProfile(targetClientID, profileJson, function(err, redisReply) {
+
+                });
+              }
+            }
+            else {
+
+            }
+          });
+        }
+        else {
+
+        }
+      }
+      else {
+
+      }
+    });
+
+  }
+  catch(e) {
+
+  }
+
+}
+
+
 /**
  * Start a chat search
  * @sessionID  ID of the session

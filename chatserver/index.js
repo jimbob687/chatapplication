@@ -38,6 +38,7 @@ global._searchapi = require('./searchapi.js');
 global._startchat = require('./startchat.js');
 var socketconn = require('./socketconn.js');
 global._commonchat = require('./commonchat.js');
+global._profileapi = require('./profileapi.js');
 
 global._dbmethods = require('./dbmethods.js');
 global._redismethods = require('./redismethods.js');
