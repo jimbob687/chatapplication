@@ -9,7 +9,7 @@ module.exports = {
   searchClientNameAPI: function(jsessionID, term, callback) {
     // Query for a client name and details, most often used when searching for clients to chat with
 
-    var serverURL = apiServerConfig.protocol + "://" + apiServerConfig.serverhostname + ":" + apiServerConfig.serverport + apiServerConfig.clientsearchpath;
+    var serverURL = _apiProtocol + "://" + _apiServerHostName + ":" + _apiServerPort + _clientSearchPathApi;
 
     request.defaults({jar: true});
     if(requestConfig.verbose == true) {
@@ -19,11 +19,11 @@ module.exports = {
     var j = request.jar();
     var cookieVal = "JSESSIONID=" + jsessionID;
     var cookie = request.cookie(cookieVal);
-    var cookieHostName = apiServerConfig.protocol + "://" + apiServerConfig.serverhostname;
+    var cookieHostName = _apiProtocol + "://" + _apiServerHostName;
     j.setCookie(cookie, cookieHostName);
     if(requestConfig.verbose == true) {
-      logger.info("apiServerConfig.serverhostname: " + apiServerConfig.serverhostname);
-      logger.info("Cookie JAR: " + j.getCookieString(apiServerConfig.serverhostname));
+      logger.info("_apiServerHostName: " + _apiServerHostName);
+      logger.info("Cookie JAR: " + j.getCookieString(_apiServerHostName));
     }
 
     var formData = {};

@@ -184,8 +184,20 @@ global._chatMsgCountKey;
 if("chatmsgcountkey" in _redisKeysConfig) {
   _chatMsgCountKey = _redisKeysConfig.chatmsgcountkey;
 }
+global._clientProfileKey;
+if("clientprofilekey" in _redisKeysConfig) {
+  _clientProfileKey = _redisKeysConfig.clientprofilekey;
+}
+global._clientProfileExpireTime;
+if("clientprofileexpiretime" in _redisKeysConfig) {
+  _clientProfileExpireTime = _redisKeysConfig.clientprofileexpiretime;
+}
 
-global._messageLimit = config.get(messagelimit);
+global._messagesConfig = config.get('messages');
+global._messageLimit;
+if("messagelimit" in _messagesConfig) {
+  _messageLimit = _messagesConfig.messagelimit;
+}
 
 global.sessionConfig = config.get('session');
 
@@ -196,6 +208,35 @@ var controllerConfig = config.get('controller');
 
 // Get the configuration for the api server
 GLOBAL.apiServerConfig = config.get('apiserver');
+global._apiServerHostName;
+if("serverhostname" in apiServerConfig) {
+  _apiServerHostName = apiServerConfig.serverhostname;
+}
+global._apiServerPort;
+if("serverport" in apiServerConfig) {
+  _apiServerPort = apiServerConfig.serverport;
+}
+global._apiProtocol;
+if("protocol" in apiServerConfig) {
+  _apiProtocol = apiServerConfig.protocol;
+}
+global._authPathApi;
+if("authpath" in apiServerConfig) {
+  _authPathApi = apiServerConfig.authpath;
+}
+global._profilePathApi;
+if("profilepath" in apiServerConfig) {
+  _profilePathApi = apiServerConfig.profilepath;
+}
+global._inviteCheckPathApi;
+if("invitecheck" in apiServerConfig) {
+  _inviteCheckPathApi = apiServerConfig.invitecheck;
+}
+global._clientSearchPathApi;
+if("clientsearchpath" in apiServerConfig) {
+  _clientSearchPathApi = apiServerConfig.clientsearchpath;
+}
+
 
 GLOBAL.requestConfig = config.get('request');
 

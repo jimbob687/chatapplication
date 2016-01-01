@@ -10,8 +10,8 @@ module.exports = {
     // Query to check that an admin has permissions to chat with another user, might be several criteria, do they
     // belong to the same group, or if outside group, have they invited a user before
 
-    var serverURL = apiServerConfig.protocol + "://" + apiServerConfig.serverhostname + ":" + 
-					apiServerConfig.serverport + apiServerConfig.invitecheck;
+    var serverURL = _apiProtocol + "://" + _apiServerHostName + ":" + 
+					_apiServerPort + _inviteCheckPathApi;
 
     request.defaults({jar: true});
     if(requestConfig.verbose == true) {
@@ -21,12 +21,12 @@ module.exports = {
     var j = request.jar();
     var cookieVal = "JSESSIONID=" + jsessionID;
     var cookie = request.cookie(cookieVal);
-    var cookieHostName = apiServerConfig.protocol + "://" + apiServerConfig.serverhostname;
+    var cookieHostName = _apiProtocol + "://" + _apiServerHostName;
     j.setCookie(cookie, cookieHostName);
     /*
     if(requestConfig.verbose == true) {
-      logger.info("apiServerConfig.serverhostname: " + apiServerConfig.serverhostname);
-      logger.info("Cookie JAR: " + j.getCookieString(apiServerConfig.serverhostname));
+      logger.info("_apiServerHostName: " + _apiServerHostName);
+      logger.info("Cookie JAR: " + j.getCookieString(_apiServerHostName));
     }
     */
 

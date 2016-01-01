@@ -9,13 +9,13 @@ module.exports = {
 
   queryAuthAPI: function(username, password, callback) {
 
-    var serverURL = apiServerConfig.protocol + "://" + apiServerConfig.serverhostname + ":" + apiServerConfig.serverport;
+    var serverURL = _apiProtocol + "://" + _apiServerHostName + ":" + _apiServerPort;
 
     var authURI = "/mytannfe/auth/AdminApiAuth.do";
 
     var formData = {form:{ username: username, password: password}}
 
-    request.post(serverURL + apiServerConfig.authpath, formData, function (error, response, body) {
+    request.post(serverURL + _authPathApi, formData, function (error, response, body) {
       if (!error && response.statusCode == 200) {
         logger.debug(body); 
         callback(false, JSON.parse(body));
@@ -30,7 +30,7 @@ module.exports = {
   queryProfileAPI: function(jsessionID, callback) {
     // Query the profile for an admin using the jsessionid
 
-    var serverURL = apiServerConfig.protocol + "://" + apiServerConfig.serverhostname + ":" + apiServerConfig.serverport + apiServerConfig.profilepath;
+    var serverURL = _apiProtocol + "://" + _apiServerHostName + ":" + _apiServerPort + _profilePathApi;
 
     //var authURI = "/mytannfe/auth/AdminApiAuth.do";
 
@@ -42,11 +42,11 @@ module.exports = {
     var j = request.jar();
     var cookieVal = "JSESSIONID=" + jsessionID;
     var cookie = request.cookie(cookieVal);
-    var cookieHostName = apiServerConfig.protocol + "://" + apiServerConfig.serverhostname;
+    var cookieHostName = _apiProtocol + "://" + _apiServerHostName;
     j.setCookie(cookie, cookieHostName);
     if(requestConfig.verbose == true) {
-      logger.info("apiServerConfig.serverhostname: " + apiServerConfig.serverhostname);
-      logger.info("Cookie JAR: " + j.getCookieString(apiServerConfig.serverhostname));
+      logger.info("_apiServerHostName: " + _apiServerHostName);
+      logger.info("Cookie JAR: " + j.getCookieString(_apiServerHostName));
     }
 
 

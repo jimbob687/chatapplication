@@ -94,8 +94,8 @@ module.exports = {
 
       var returnHash = {};
 
-      var clientKeyBr = "kabr:" + clientID;   // status for browser
-      var clientMobBr = "kamo:" + clientID;   // status for mobile
+      var clientKeyBr = _keepaliveBrowserKey + ":" + clientID;   // status for browser
+      var clientMobBr = _keepaliveMobileKey + ":" + clientID;   // status for mobile
 
       _redisclient.get(clientKeyBr, function(err, reply) {
         // get status for browser
@@ -138,7 +138,77 @@ module.exports = {
       callback(true, null);
     }
 
+  },
+
+
+  addClientProfile: function(clientID, profileJson, callback) {
+
+    /*
+     * Add a client's profile into redis.
+     * This is used to cache client profiles.
+     */
+
+    try {
+
+      var clientProfKey = _clientProfileKey + ":" + clientID;   // key for a client profile in redis
+
+      // set the keepalive key in redis using the persistent state
+      _redisclient.set(clientProfKey, profileJson, function(err, reply) {
+        if(!err) {
+          logger.info("Reply from redis: " + reply);
+        }
+        else {
+          logger.error("Error trying to get set client profile in redis for clientID: " + clientID + " error: " + reply);
+        }
+      });
+      // now set the key to expire
+      _redisclient.expire(clientProfKey, _clientProfileExpireTime, function(err, expireReply) {
+        if(err) {
+          logger.error("Error attempting to set profile expire time for clientID: " + clientID);
+        }
+      });
+
+      // callback that there wasn't an error
+      callback(false, null);
+    
+    }
+    catch(e) {
+      logger.error("Exception attempting to set profile for clientID: " + clientID + " from redis. " + e);
+      callback(true, null);
+    }
+
+  },
+
+
+  fetchClientProfile: function(clientID, callback) {
+    /*
+     * Get a client's profile from redis. If it doesn't exist then return null.
+     */
+
+    try {
+      var returnJson = null;
+
+      var clientProfKey = _clientProfileKey + ":" + clientID;   // key for a client profile in redis
+
+      _redisclient.get(clientProfKey, function(err, reply) {
+        if(!err) {
+          // send back response, will be null if key doesn't exist
+          callback(false, reply);
+        }
+        else { 
+          logger.error("Error attempting to get the profile for clientID: " + clientID + " from redis. Error: " + reply);
+          callback(true, null);
+        }
+      });
+    
+    }
+    catch(e) {
+      logger.error("Exception attempting to get status for clientID: " + clientID + " from redis. " + e);
+      callback(true, null);
+    }
+
   }
+
 
 
 }
