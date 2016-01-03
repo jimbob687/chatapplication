@@ -319,7 +319,15 @@
         if("randomhash" in returnData) {
           randomHash = returnData.randomhash;
         }
-        console.log("Chat created with chatsessionID: " + chatsessionID + " and randomHash: " + randomHash);
+        var profileHash = null;
+        if("clientprofiles" in returnData) {
+          profileHash = returnData.clientprofiles;
+        }
+        var clientStatusHash = null;
+        if("clientstatus" in returnData) {
+          clientStatusHash = returnData.clientstatus;
+        }
+        console.log("Chat created with chatsessionID: " + chatsessionID + " and randomHash: " + randomHash + " and client profiles: " + JSON.stringify(profileHash) + " with status: " + JSON.stringify(clientStatusHash));
       });
 
       $("#adminloginbtn").on('click', function(){

@@ -106,32 +106,34 @@ module.exports = {
           else {
             returnHash['browser'] = "offline";
           }
+
+          _redisclient.get(clientMobBr, function(err, reply) {
+            // get status for mobile
+            if(!err) {
+              if(reply != null) {
+                returnHash['mobile'] = reply;
+              }
+              else {
+                returnHash['mobile'] = "offline";
+              }
+              callback(false, returnHash);
+            }
+            else { 
+              logger.error("Error attempting to get the mobile state of clientID: " + clientID + " from redis");
+              returnHash['mobile'] = "unknown";
+              callback(false, returnHash);
+            }
+          });
+
         }
         else { 
           logger.error("Error attempting to get the browser state of clientID: " + clientID + " from redis");
           returnHash['browser'] = "unknown";
           finalState = "unknown";
+          callback(false, returnHash);
         }
       });
 
-      _redisclient.get(clientMobBr, function(err, reply) {
-        // get status for browser
-        if(!err) {
-          if(reply != null) {
-            returnHash['mobile'] = reply;
-          }
-          else {
-            returnHash['mobile'] = "offline";
-          }
-        }
-        else { 
-          logger.error("Error attempting to get the mobile state of clientID: " + clientID + " from redis");
-          returnHash['mobile'] = "unknown";
-        }
-      });
-
-      callback(false, returnHash);
-    
     }
     catch(e) {
       logger.error("Exception attempting to get status for clientID: " + clientID + " from redis. " + e);
@@ -149,31 +151,34 @@ module.exports = {
      */
 
     try {
+      logger.debug("About to add client JSON to redis: " + profileJson);
 
       var clientProfKey = _clientProfileKey + ":" + clientID;   // key for a client profile in redis
 
       // set the keepalive key in redis using the persistent state
       _redisclient.set(clientProfKey, profileJson, function(err, reply) {
         if(!err) {
-          logger.info("Reply from redis: " + reply);
+          logger.debug("Reply from redis: " + reply);
+          // get the new random expire time
+          var newRandomExpireTime = getRandomTime(_clientProfileExpireTime);
+          // now set the key to expire
+          _redisclient.expire(clientProfKey, newRandomExpireTime, function(err, expireReply) {
+            if(err) {
+              logger.error("Error attempting to set profile expire time for clientID: " + clientID);
+            }
+            // callback that there wasn't an error
+            callback(false, null);
+          });
         }
         else {
           logger.error("Error trying to get set client profile in redis for clientID: " + clientID + " error: " + reply);
+          callback(true, null);
         }
       });
-      // now set the key to expire
-      _redisclient.expire(clientProfKey, _clientProfileExpireTime, function(err, expireReply) {
-        if(err) {
-          logger.error("Error attempting to set profile expire time for clientID: " + clientID);
-        }
-      });
-
-      // callback that there wasn't an error
-      callback(false, null);
     
     }
     catch(e) {
-      logger.error("Exception attempting to set profile for clientID: " + clientID + " from redis. " + e);
+      logger.error("Exception attempting to set profile for clientID: " + clientID + " in redis. " + e);
       callback(true, null);
     }
 
@@ -190,10 +195,17 @@ module.exports = {
 
       var clientProfKey = _clientProfileKey + ":" + clientID;   // key for a client profile in redis
 
+      logger.debug("About to get profile from redis for clientID: " + clientID + " and key: " + clientProfKey);
+
       _redisclient.get(clientProfKey, function(err, reply) {
         if(!err) {
           // send back response, will be null if key doesn't exist
-          callback(false, reply);
+          if(reply == null) {
+            callback(false, null);
+          }
+          else {
+            callback(false, reply.toString());
+          }
         }
         else { 
           logger.error("Error attempting to get the profile for clientID: " + clientID + " from redis. Error: " + reply);
@@ -352,4 +364,39 @@ function fetchClientStateDB(clientID, clientStateKey, callback) {
 
 
 
+/*
+ * Function to take the redis expire time and randomize it by up to 1/20th adding or subtracting the amount
+ */
+function getRandomTime(expireTime) {
+
+  // get 1/20th of expire time
+  var fractionExp = expireTime/20;
+
+  // Get a random number between 1 and the fractionExp
+  var randomExpireTime = Math.floor(Math.random() * fractionExp) + 1;
+
+  if(randomExpireTime < 0) {
+    // make a positive number
+    randomExpireTime = randomExpireTime * -1;
+  }
+
+  logger.debug("ExpireTime randomized by: " + randomExpireTime);
+
+  var randomMod = randomExpireTime % 2;
+
+  if(randomMod == 0) {
+    // is an even number so subtract
+    return (expireTime - randomExpireTime);
+  }
+  else if(randomMod == 1) {
+    // is an odd so add
+    return (expireTime + randomExpireTime);
+  }
+  else {
+    logger.error("Error, unable to determine random expire time");
+    // just return what there is
+    return expireTime;
+  }
+
+}
 

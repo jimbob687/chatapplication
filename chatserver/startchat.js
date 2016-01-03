@@ -76,20 +76,11 @@ module.exports = {
       randomHash = dataHash.randomhash;
     
       // Start processing the chat
-      runChatStart(clientID, sessionID, socket, dataHash, function(err, chatSessionID) {
+      runChatStart(clientID, sessionID, socket, dataHash, function(err, returnHash) {
 
         if(!err) {
-          // We have successfully created the chat
-          var returnHash = {};
+          // We have successfully created the chat so add the random hash to it
           returnHash["randomhash"] = randomHash;
-          returnHash["chatsessionid"] = chatSessionID;
-
-          var profileHash = {};
-
-          // now we need to get the profiles
-          for(var clientIDkey in dataHash) {
-
-          }
 
           callback(false, returnHash);
         }
@@ -222,7 +213,7 @@ function queryClientProfile(targetClientID, sessionID, callback) {
 
   try {
 
-    _redismethods.fetchClientProfile(targetClientID, function(err, profile) {
+    _redismethods.fetchClientProfile(targetClientID, function(err, profileJson) {
       if(!err) {
         if(profileJson == null) {
           // nothing in redis so need to call the api
@@ -230,16 +221,15 @@ function queryClientProfile(targetClientID, sessionID, callback) {
             if(!err) {
               if(profileJson == null) {
                 // we have a problem at this point
+                callback(true, null);
               }
               else {
                 // let's add it to redis
                 _redismethods.addClientProfile(targetClientID, profileJson, function(err, redisReply) {
-                  if(!err) {
-                    
+                  if(err) {
+                    logger.error("Error, unable to add profile to redis for clientID: " + targetClientID);
                   }
-                  else {
-
-                  }
+                  callback(false, profileJson);
                 });
               }
             }
@@ -250,22 +240,104 @@ function queryClientProfile(targetClientID, sessionID, callback) {
           });
         }
         else {
-
+          // profile has been taken from redis, so return it
+          callback(false, profileJson);
         }
       }
       else {
-
+        logger.error("Error attempting to fetch profile from redis for clientID: " + clientID);
+        callback(true, null);
       }
     });
 
   }
   catch(e) {
-
+    logger.error("Exception attempting to fetch profile for clientID: " + clientID);
+    callback(true, null);
   }
 
 }
 
 
+/*
+ * Function to get client profiles
+ */
+function grabClientProfiles(sessionID, permHash, callback) {
+
+  try {
+
+    var clientProfilesHash = {};
+    var elementsFound = 1;   // number of keys that have been processed
+    var permHashLen = Object.keys(permHash).length;    // get length of permHash
+
+    // iterate the client hash
+    for(var targetClientID in permHash) {
+      logger.debug("About to get profile for clientID: " + targetClientID);
+      queryClientProfile(targetClientID, sessionID, function(err, clientProfile) {
+        elementsFound++;   // increment the number of object processed
+        // let's get the client profile, first from redis, and api if not in redis
+        if(!err) {
+          clientProfilesHash[targetClientID] = JSON.parse(clientProfile);
+          logger.debug("Client profile: " + clientProfile);
+        }
+        else {
+          logger.error("Error, unable to get client profile for clientID: " + targetClientID);
+        }
+        if(elementsFound >= permHashLen) {
+          // we have processed all the keys
+          callback(false, clientProfilesHash);
+        }
+      });
+    }
+
+  }
+  catch(e) {
+    logger.error("Exception attempting to obtain client profiles " + e);
+    callback(true, null);
+  }
+
+}
+
+
+
+/*
+ * Function to get client statuses from redis e.g. online, busy, offline etc
+ */
+function getClientStatus(permHash, callback) {
+
+  try {
+    logger.debug("In getClientStatus");
+
+    var clientStatusHash = {};
+    var elementsFound = 1;   // number of keys that have been processed
+    var permHashLen = Object.keys(permHash).length;    // get length of permHash
+
+    // fetchClientStatus: function(clientID, callback)
+    for(var targetClientID in permHash) {
+      logger.debug("Getting status for clientID: " + targetClientID);
+      _redismethods.fetchClientStatus(targetClientID, function(err, clientStatus) {
+        elementsFound++;   // increment the number of object processed
+        if(!err) {
+          logger.debug("Adding status of " + JSON.stringify(clientStatus) + " for clientID: " + targetClientID);
+          clientStatusHash[targetClientID] = clientStatus;
+        }
+        else {
+          logger.error("Error, unable to get client status for clientID: " + targetClientID);
+        }
+        if(elementsFound >= permHashLen) {
+          // we have processed all the keys so return the hash
+          callback(false, clientStatusHash);
+        }
+      });
+    }
+
+  }
+  catch(e) {
+    logger.error("Exception attempting to get client statuses " + e);
+    callback(true, null);
+  }
+
+}
 
 
 /**
@@ -300,10 +372,28 @@ function runChatStart(clientID, sessionID, socket, dataHash, callback) {
               queryChatSessionDB(clientID, permHash, function(err, chatSessionID) {
                 if(!err) {
                   returnHash["chatsessionid"] = chatSessionID;
-                  for(var clientIDkey in permHash) {
+                  grabClientProfiles(sessionID, permHash, function(err, clientProfilesHash) {
+                    if(!err) {
+                      returnHash["clientprofiles"] = clientProfilesHash;
+                      getClientStatus(permHash, function(err, clientStatusHash) {
+                        // get the client statuses
+                        if(!err) {
+                          returnHash["clientstatus"] = clientStatusHash;
+                        }
+                        else {
+                          // log an error but proceed anyway
+                          logger.error("Error atttempting to client statuses for chat sessioID: " + chatSessionID);
+                          returnHash["clientstatus"] = {};     // put an empty hash in
+                        }
+                        callback(false, returnHash);
+                      });
+                    }
+                    else {
+                      logger.error("Error attempting to start chat when querying client profiles");
+                      callback(true, null);
+                    }
 
-                  }
-                  callback(false, chatSessionID);
+                  });
                 }
                 else {
                   callback(true, null);
