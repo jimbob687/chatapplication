@@ -10,8 +10,7 @@ module.exports = {
     // Query to check that an admin has permissions to chat with another user, might be several criteria, do they
     // belong to the same group, or if outside group, have they invited a user before
 
-    var serverURL = _apiProtocol + "://" + _apiServerHostName + ":" + 
-					_apiServerPort + _inviteCheckPathApi;
+    var serverURL = _apiProtocol + "://" + _apiServerHostName + ":" + _apiServerPort + _inviteCheckPathApi;
 
     request.defaults({jar: true});
     if(requestConfig.verbose == true) {
@@ -84,6 +83,14 @@ module.exports = {
           var returnHash = {};
           returnHash["randomhash"] = randomHash;
           returnHash["chatsessionid"] = chatSessionID;
+
+          var profileHash = {};
+
+          // now we need to get the profiles
+          for(var clientIDkey in dataHash) {
+
+          }
+
           callback(false, returnHash);
         }
         else {
@@ -206,10 +213,12 @@ function queryChatSessionDB(clientID, permHash, callback) {
 }
 
 
+
+
 /*
  * Get the profile information for a client. Will try redis first, if not in redis then query api and populate redis
  */
-function fetchClientProfile(targetClientID, sessionID) {
+function queryClientProfile(targetClientID, sessionID, callback) {
 
   try {
 
@@ -225,12 +234,18 @@ function fetchClientProfile(targetClientID, sessionID) {
               else {
                 // let's add it to redis
                 _redismethods.addClientProfile(targetClientID, profileJson, function(err, redisReply) {
+                  if(!err) {
+                    
+                  }
+                  else {
 
+                  }
                 });
               }
             }
             else {
-
+              logger.error("Error attempting to get profile for clientID: " + targetClientID + " from API");
+              callback(true, null);
             }
           });
         }
@@ -251,6 +266,8 @@ function fetchClientProfile(targetClientID, sessionID) {
 }
 
 
+
+
 /**
  * Start a chat search
  * @sessionID  ID of the session
@@ -258,6 +275,8 @@ function fetchClientProfile(targetClientID, sessionID) {
  * @dataHash   HashMap of the data
  */
 function runChatStart(clientID, sessionID, socket, dataHash, callback) {
+
+  var returnHash = {};
 
   var inviteeIdArray = [];    // list of admins to add to the chat
   if("inviteeid" in dataHash) {
@@ -267,7 +286,7 @@ function runChatStart(clientID, sessionID, socket, dataHash, callback) {
   // check that the admin has permission to add the invitees
   _startchat.requestAdminPermissions(sessionID, inviteeIdArray, function(apiErr, returndata) {
     if(!apiErr) {
-      logger.info("Not an error requesting admin permissions");
+      logger.info("Successful check requesting admin permissions");
       if("perms" in returndata) {
         _startchat.checkAdminPermissions(returndata.perms, function(err, permHash) {
           if(!err) {
@@ -280,6 +299,10 @@ function runChatStart(clientID, sessionID, socket, dataHash, callback) {
 
               queryChatSessionDB(clientID, permHash, function(err, chatSessionID) {
                 if(!err) {
+                  returnHash["chatsessionid"] = chatSessionID;
+                  for(var clientIDkey in permHash) {
+
+                  }
                   callback(false, chatSessionID);
                 }
                 else {
