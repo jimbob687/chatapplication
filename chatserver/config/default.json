@@ -62,7 +62,7 @@
      "persistentstatuskey": "clstat",    // redis key for the persistent state of a client e.g. recording online etc
      "chatmsgcountkey": "chatmsgcnt",           // redis key for a conversationID
      "clientprofilekey": "clprof",               // for a client profile, JSON string that will be used
-     "clientprofileexpiretime": "3600"	// secs before a client profile expires and has to be refetched, this will be be randomized +- 60 secs
+     "clientprofileexpiretime": "120"	// secs before a client profile expires and has to be refetched, this will be be randomized +- 60 secs
    },
 
    "messages" : {

@@ -35,7 +35,7 @@ module.exports = {
         if(requestConfig.verbose == true) {
           logger.debug(body) // Print the response
         }
-        callback(false, JSON.parse(body));
+        callback(false, body);
       }
       else if( response.statusCode == 302) {
         if(requestConfig.verbose == true) {
