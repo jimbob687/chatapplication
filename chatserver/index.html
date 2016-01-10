@@ -182,6 +182,10 @@
 
     </style>
   </head>
+
+  <link rel="stylesheet" href="css/chat.css">
+
+
   <link rel="stylesheet" href="css/tannfefrontbootstrap.css">
   <link rel="stylesheet" href="css/font-awesome.min.css">
 
@@ -574,9 +578,14 @@
 
 
       // Add a contact to the contact box, this is the work in progress
-      function addContact() {
+      function addContact(chatID) {
 
-
+        var contactLi = document.createElement('li');
+        contactLi.className = "chatcontactli";
+        contactLi.setAttribute("chatid", chatID);
+        contactLi.setAttribute("tabindex", "0");
+        
+        
       }
 
     });
