@@ -613,12 +613,35 @@
         
 
         var imgContactUnderDiv = document.createElement('div');
-        imgContactUnderDiv.clasName = "imgcontactunderdiv";
+        imgContactUnderDiv.className = "imgcontactunderdiv";
         imageContactOuterDiv.appendChild(imgContactUnderDiv);
+
+        /* This part is for user status */
+        var chatStatusDiv = document.createElement('div');
+        chatStatusDiv.className = "chatstatusdiv";
+        contactDiv.appendChild(chatStatusDiv);
+
+        /* This is what the status icon will go into */
+        var chatStatusInnerDiv = document.createElement('div');
+        chatStatusInnerDiv.className = "chatstatusinnerdiv";
+        chatStatusDiv.appendChild(chatStatusInnerDiv);
+
+        
+        /* Name of the client */
+        var chatNameDiv = document.createElement('div');
+        chatNameDiv.className = "chatclientnamediv";
+        chatNameDiv.innerHTML = "NAME OF CLIENT";
+        contactDiv.appendChild(chatNameDiv);
+
+        /* Not sure what this is for */
+        var chatName2Div = document.createElement('div');
+        chatName2Div.className = "chatclientname2div";
+        contactDiv.appendChild(chatName2Div);
         
       }
 
     });
+
   </script>
   <body>
 
