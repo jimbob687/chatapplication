@@ -407,7 +407,7 @@ function authClient(username, password, req, res) {
     }
     else {
       var errMsg = null;
-      if("message" in authJson) {
+      if(authJson != null && "message" in authJson) {
         errMsg = authJson.message;
       }
       logger.error("Error, unable to authenticate user, error message: " + errMsg);

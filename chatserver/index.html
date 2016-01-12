@@ -413,7 +413,6 @@
       function autoCompleteName(element, completetype) {
         // How to do autocomplete with jquery and socket.io    
         // http://stackoverflow.com/questions/18596053/jquery-ui-autocomplete-websockets-implementation
-        //$('#newhaciendainvitees').autocomplete({
         $(element).autocomplete({
           width: 300,
           max: 10,
@@ -577,70 +576,76 @@
       });
 
 
-      // Add a contact to the contact box, this is the work in progress
-      function addContact(chatID) {
 
-        var contactLi = document.createElement('li');
-        contactLi.className = "chatcontactli";
-        contactLi.setAttribute("chatid", chatID);
-        contactLi.setAttribute("tabindex", "0");
-        
-        /* Leaving out the anchor */
-
-        var contactDiv = document.createElement('div');
-        contactDiv.className = "chatcontactdiv";
-        contactLi.appendChild(contactDiv);
-
-
-        /* This is for the image of the chat contact */
-        var imageContactOuterDiv = document.createElement('div');
-        imageContactOuterDiv.className = "chatinnercontactdiv";
-        contactDiv.appendChild(imageContactOuterDiv);
-
-        var imageContactDiv = document.createElement('div');
-        imageContactDiv.className = "chatimgcontactdiv";
-        imageContactDiv.setAttribute("size", "32");
-        imageContactDiv.style.width = "32px";
-        imageContactDiv.style.height = "32px";
-        innerContactDiv.appendChild(imageContactDiv);
-
-        var contactImg = document.createElement('img');
-        contactImg.setAttribute("src", "http://www.thelink.com/to/imgage.jpg");
-        contactImg.style.width = "32px";
-        contactImg.style.height = "32px";
-        contactImg.className = "chatcontactimg";
-        imageContactDiv.appendChild(contactImg);
-        
-
-        var imgContactUnderDiv = document.createElement('div');
-        imgContactUnderDiv.className = "imgcontactunderdiv";
-        imageContactOuterDiv.appendChild(imgContactUnderDiv);
-
-        /* This part is for user status */
-        var chatStatusDiv = document.createElement('div');
-        chatStatusDiv.className = "chatstatusdiv";
-        contactDiv.appendChild(chatStatusDiv);
-
-        /* This is what the status icon will go into */
-        var chatStatusInnerDiv = document.createElement('div');
-        chatStatusInnerDiv.className = "chatstatusinnerdiv";
-        chatStatusDiv.appendChild(chatStatusInnerDiv);
-
-        
-        /* Name of the client */
-        var chatNameDiv = document.createElement('div');
-        chatNameDiv.className = "chatclientnamediv";
-        chatNameDiv.innerHTML = "NAME OF CLIENT";
-        contactDiv.appendChild(chatNameDiv);
-
-        /* Not sure what this is for */
-        var chatName2Div = document.createElement('div');
-        chatName2Div.className = "chatclientname2div";
-        contactDiv.appendChild(chatName2Div);
-        
-      }
+      addContact("1"); 
 
     });
+
+    // Add a contact to the contact box, this is the work in progress
+    function addContact(chatID) {
+
+      var contactLi = document.createElement('li');
+      contactLi.className = "chatcontactli";
+      contactLi.setAttribute("chatid", chatID);
+      contactLi.setAttribute("tabindex", "0");
+        
+      $("#contactlistul").append(contactLi)
+        
+      /* Leaving out the anchor */
+
+      var contactDiv = document.createElement('div');
+      contactDiv.className = "chatcontactdiv";
+      contactLi.appendChild(contactDiv);
+
+
+      /* This is for the image of the chat contact */
+      var imageContactOuterDiv = document.createElement('div');
+      imageContactOuterDiv.className = "chatinnercontactdiv";
+      contactDiv.appendChild(imageContactOuterDiv);
+
+      var imageContactDiv = document.createElement('div');
+      imageContactDiv.className = "chatimgcontactdiv";
+      imageContactDiv.setAttribute("size", "32");
+      imageContactDiv.style.width = "32px";
+      imageContactDiv.style.height = "32px";
+      imageContactOuterDiv.appendChild(imageContactDiv);
+
+      var contactImg = document.createElement('img');
+      //contactImg.setAttribute("src", "http://www.thelink.com/to/imgage.jpg");
+      contactImg.style.width = "32px";
+      contactImg.style.height = "32px";
+      contactImg.className = "chatcontactimg";
+      imageContactDiv.appendChild(contactImg);
+        
+
+      var imgContactUnderDiv = document.createElement('div');
+      imgContactUnderDiv.className = "imgcontactunderdiv";
+      imageContactOuterDiv.appendChild(imgContactUnderDiv);
+
+      /* This part is for user status */
+      var chatStatusDiv = document.createElement('div');
+      chatStatusDiv.className = "chatstatusdiv";
+      contactDiv.appendChild(chatStatusDiv);
+
+      /* This is what the status icon will go into */
+      var chatStatusInnerDiv = document.createElement('div');
+      chatStatusInnerDiv.className = "chatstatusinnerdiv";
+      chatStatusDiv.appendChild(chatStatusInnerDiv);
+
+        
+      /* Name of the client */
+      var chatNameDiv = document.createElement('div');
+      chatNameDiv.className = "chatclientnamediv";
+      chatNameDiv.innerHTML = "NAME OF CLIENT";
+      contactDiv.appendChild(chatNameDiv);
+
+      /* Not sure what this is for */
+      var chatName2Div = document.createElement('div');
+      chatName2Div.className = "chatclientname2div";
+      contactDiv.appendChild(chatName2Div);
+        
+    }
+
 
   </script>
   <body>
@@ -739,6 +744,14 @@
                 <i class="fa fa-plus-square-o fa-2x"></i>
               </button>
             </div>
+
+          </div>
+
+          <div id="contactlist" style="width: 100%; float: left;">
+
+            <ul id="contactlistul" style="width: 100%; float: left;">
+
+            </ul>
 
           </div>
 

@@ -21,8 +21,13 @@ module.exports = {
         callback(false, JSON.parse(body));
       }
       else {
-        logger.error("Error making request: " + body);
-        callback(true, JSON.parse(body));
+        logger.error("Error making request: " + body + " with response: " + response);
+        if(response === undefined) {
+          callback(true, null);
+        }
+        else {
+          callback(true, JSON.parse(body));
+        }
       }
     })
   },
