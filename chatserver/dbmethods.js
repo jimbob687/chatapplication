@@ -261,6 +261,40 @@ module.exports = {
   },
 
 
+  // Get a list of all the conversations belonging to a client
+  searchAllClientConversations: function(clientID, callback) {
+
+    try {
+
+      pool.getConnection(function(err,connection) {
+
+        if (err) {
+          var res = {"code" : 100, "status" : "Error in connection database"};
+          callback(true, res);
+        }   
+
+        connection.query("SELECT co2.conversationID, co2.clientidsum, co2.created, co2.status, co2.inactive_date, GROUP_CONCAT(cp2.clientIDTOR ',') AS clientIDs FROM conversation co2 LEFT OUTER JOIN conversationparticipants cp2 ON co2.conversationID = cp2.conversationID WHERE co2.conversationID IN ( SELECT co.conversationID FROM conversationparticipants cp LEFT OUTER JOIN conversation co ON cp.conversationID = co.conversationID WHERE cp.clientID = ? ) GROUP BY co2.conversationID", clientID, function(err, rows) {
+
+          connection.release();
+          if(!err) {
+            callback(false, rows, rows.length);
+          }
+          else {
+            logger.error("Error querying database for conversations for clientID: " + clientID + " with err: " + err);
+            callback(true, err);
+          }
+        });
+
+      });
+      
+    }
+    catch(e) {
+      callback(true, e);
+    }
+
+  },
+
+
   // Function to create a conversation in the db and add the clientIDs, this is for a direct chat, not a room/hacienda
   // clientID - ID of the client creating the conversation
   // chatconversionID  - ID of the chat conversation that was just created

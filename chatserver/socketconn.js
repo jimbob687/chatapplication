@@ -487,3 +487,23 @@ function removeSocketFromHash(remClientID, remJsessionID) {
 
 }
 
+
+/*
+ * Function to retrieve a list of chats for a client
+ * clientID - ID of the client we want the chats for
+ */
+function retrieveChats(clientID, callback) {
+
+  try {
+    _dbmethods.searchAllClientConversations(clientID, function(err, convRows) {
+
+    });    
+  }
+  catch(e) {
+
+  }
+
+}
+
+
+

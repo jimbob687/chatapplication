@@ -162,8 +162,11 @@ function queryChatSessionDB(clientID, permHash, callback) {
 
         }
         else if(recordsFound == 0) {
+          if(returnData == null) {
+            logger.error("Error, returnData is null " + JSON.stringify(permHash));
+          }
           // need to create a chat session as none exists at the moment
-          addChatSessionDB(clientID, returndata.perms, function(err, chatSessionID) {
+          addChatSessionDB(clientID, permHash, function(err, chatSessionID) {
             if(!err) {
               callback(false, chatSessionID);
             }
