@@ -43,7 +43,9 @@ module.exports = {
         if("clientid" in socket) {
           logger.info("clientid of socket: " + socket.clientid);
           processData(sessionID, socket, dataHash);
-          checkJsessionID(socket, jsessionID);
+          checkJsessionID(socket, jsessionID, function(err, returnjSession) {
+            // not sure what needs to be done with this callback
+          });
         }
         else {
           logger.debug("Socket doesn't have a clientid so need to get from the db");
@@ -64,7 +66,9 @@ module.exports = {
       socket.on('clientlookup', function(dataHash, jsessionID) {
         if("clientid" in socket) {
           logger.info("Have just got an autocomplete request: " + JSON.stringify(dataHash));
-          checkJsessionID(socket, jsessionID);
+          checkJsessionID(socket, jsessionID, function(err, returnjSession) {
+            // not sure what needs to be done with this callback
+          });
           _commonchat.clientNameSearch(jsessionID, dataHash, function(err, completeHash) {
             if(!err) {
               io.emit('clientautocomplete', completeHash);
@@ -76,15 +80,46 @@ module.exports = {
         }
         else {
           adminProfile(jsessionID, socket, function(err, returndata) {
-            _commonchat.clientNameSearch(jsessionID, dataHash, function(err, completeHash) {
-              if(!err) {
-                io.emit('clientautocomplete', completeHash);
-              }
-              else {
-                // Need to add an error message to this to send back to client
-              }
-            });
+            if(!err) {
+              _commonchat.clientNameSearch(jsessionID, dataHash, function(err, completeHash) {
+                if(!err) {
+                  io.emit('clientautocomplete', completeHash);
+                }
+                else {
+                  // Need to add an error message to this to send back to client
+                }
+              });
+            }
+            else {
+
+            }
             
+          });
+        }
+      });
+
+
+      socket.on('retrieveallconv', function(dataHash, jsessionID) {
+        // Retrieve all conversations belonging to a client
+        if("clientid" in socket) {
+          logger.info("Have just got a request to query all conversations belonging to a client");
+          checkJsessionID(socket, jsessionID, function(err, returnjSession) {
+            // not sure what needs to be done with this callback
+          });
+          retrieveAllConversations(clientID, function(err, convHash) {
+
+          });          
+        }
+        else {
+          adminProfile(jsessionID, socket, function(err, returndata) {
+            if(!err) {
+              retrieveAllConversations(clientID, function(err, convHash) {
+
+              });          
+            }
+            else {
+              // we have an error so return an error
+            }
           });
         }
       });
@@ -95,7 +130,9 @@ module.exports = {
         if(socket == null) {
           logger.error("Error, socket is null in chatcreate");
         }
-        checkJsessionID(socket, jsessionID);
+        checkJsessionID(socket, jsessionID, function(err, returnjSession) {
+          // not sure what needs to be done with this callback
+        }); 
         if("clientid" in socket) {
           //clientNameSearch(jsessionID, socket, dataHash);
           _startchat.processChatStart(socket.clientid, jsessionID, socket, dataHash, function(err, returnHash) {
@@ -220,7 +257,7 @@ module.exports = {
 /*
  * Function to check the jsessionID associated with a socket and update if required, as well as the hash's
  */
-function checkJsessionID(socket, jsessionID) {
+function checkJsessionID(socket, jsessionID, callback) {
   if("clientid" in socket && socket.clientid != null) {
     // socket has a clientid associated with it
     var clientID = socket.clientid;
@@ -492,18 +529,25 @@ function removeSocketFromHash(remClientID, remJsessionID) {
  * Function to retrieve a list of chats for a client
  * clientID - ID of the client we want the chats for
  */
-function retrieveChats(clientID, callback) {
+function retrieveAllConversations(clientID, callback) {
 
   try {
     _dbmethods.searchAllClientConversations(clientID, function(err, convRows) {
+      if(!err) {
 
+      }
+      else {
+
+      }
     });    
   }
   catch(e) {
-
+    callback(true, e);
   }
 
 }
+
+
 
 
 
