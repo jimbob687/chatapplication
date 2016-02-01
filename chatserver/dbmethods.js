@@ -273,7 +273,7 @@ module.exports = {
           callback(true, res);
         }   
 
-        connection.query("SELECT co2.conversationID, co2.clientidsum, co2.created, co2.status, co2.inactive_date, GROUP_CONCAT(cp2.clientIDTOR ',') AS clientIDs FROM conversation co2 LEFT OUTER JOIN conversationparticipants cp2 ON co2.conversationID = cp2.conversationID WHERE co2.conversationID IN ( SELECT co.conversationID FROM conversationparticipants cp LEFT OUTER JOIN conversation co ON cp.conversationID = co.conversationID WHERE cp.clientID = ? ) GROUP BY co2.conversationID", clientID, function(err, rows) {
+        connection.query("SELECT co2.conversationID, co2.clientidsum, co2.created, co2.status, co2.inactive_date, GROUP_CONCAT(cp2.clientID SEPARATOR ',') AS clientIDs FROM conversation co2 LEFT OUTER JOIN conversationparticipants cp2 ON co2.conversationID = cp2.conversationID WHERE co2.conversationID IN ( SELECT co.conversationID FROM conversationparticipants cp LEFT OUTER JOIN conversation co ON cp.conversationID = co.conversationID WHERE cp.clientID = ? ) GROUP BY co2.conversationID", clientID, function(err, rows) {
 
           connection.release();
           if(!err) {

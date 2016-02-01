@@ -46,6 +46,17 @@ module.exports = {
           checkJsessionID(socket, jsessionID, function(err, returnjSession) {
             // not sure what needs to be done with this callback
           });
+
+          /* 
+           * This is here as a temporary measure until I can figure out where it is meant to go
+           * Will create a list of conversations for the client 
+          */
+          /*
+          retrieveAllConversations(clientID, function(err, convHash) {
+            logger.info("Have finished retrieveAllConversations");
+          });
+          */
+
         }
         else {
           logger.debug("Socket doesn't have a clientid so need to get from the db");
@@ -53,6 +64,10 @@ module.exports = {
           adminProfile(sessionID, socket, function(err, returndata) {
             if(!err) {
               processData(sessionID, socket, dataHash);
+              if("allchatconv" in returndata) {
+                // return the data to the client
+                io.emit("allchatconv", returndata.allchatconv);
+              }
             }
             else {
               // This is an error, need to return some sort of error
@@ -102,20 +117,24 @@ module.exports = {
       socket.on('retrieveallconv', function(dataHash, jsessionID) {
         // Retrieve all conversations belonging to a client
         if("clientid" in socket) {
+          var clientID = socket.clientid;
           logger.info("Have just got a request to query all conversations belonging to a client");
           checkJsessionID(socket, jsessionID, function(err, returnjSession) {
             // not sure what needs to be done with this callback
           });
           retrieveAllConversations(clientID, function(err, convHash) {
-
+            if(!err) {
+              // send back all the conversations to the client
+              io.emit("allchatconv", convHash);
+            }
+            else {
+              logger.error("Error attempting to retrieve conversations for clientID: " + clientID);
+            }
           });          
         }
         else {
           adminProfile(jsessionID, socket, function(err, returndata) {
             if(!err) {
-              retrieveAllConversations(clientID, function(err, convHash) {
-
-              });          
             }
             else {
               // we have an error so return an error
@@ -191,7 +210,13 @@ module.exports = {
               _redismethods.setKeepalive(clientID, clientType, clientStatus, function(err, returnData) {
                 // insert record into db, not sure if we need to do a callback here
               });
+
+              if("allchatconv" in returndata) {
+                // return the data to the client
+                io.emit("allchatconv", returndata.allchatconv);
+              }
             }
+
           });
         }
       });
@@ -357,6 +382,8 @@ function adminProfile(sessionID, socket, callback) {
 
   _authapi.queryProfileAPI(sessionID, function(err, profileJson) {
 
+    var returnData = {};
+
     if(socket == null) {
       logger.error("Socket is null at top of method");
     }
@@ -375,6 +402,15 @@ function adminProfile(sessionID, socket, callback) {
         var clientID = null;
         if("sTarget_AdminID" in adminJson) {
           clientID = adminJson.sTarget_AdminID;
+
+          /* This is here as a temporary measure until I can figure out where it is meant to go */
+          retrieveAllConversations(clientID, socket, function(err, convHash) {
+            if(!err) {
+              logger.info("Have finished retrieveAllConversations");
+              returnData["allchatconv"] = convHash;
+            }
+          });
+
           // insert the session into the database
           insertDbSessionID(sessionID, clientID, function(err, chatsessionID) {
             if(!err) {
@@ -399,6 +435,7 @@ function adminProfile(sessionID, socket, callback) {
                   */
 
                   var addSuccess = addSocketClientHash(sessionID, socket, clientID);
+
                   if(!addSuccess) {
                     logger.error("Error attempting to update socketClientHash for clientID: " + clientID);
                   }
@@ -408,7 +445,7 @@ function adminProfile(sessionID, socket, callback) {
                   logger.error("Error, socket is null");
                 }
 
-                callback(false, null);   // return that everything went ok
+                callback(false, returnData);   // return that everything went ok
               }
               else {
                 callback(true, null);   // return that failed
@@ -526,18 +563,43 @@ function removeSocketFromHash(remClientID, remJsessionID) {
 
 
 /*
- * Function to retrieve a list of chats for a client
+ * Function to retrieve a list of chats for a client and the profiles of the clients
  * clientID - ID of the client we want the chats for
+ * socket - Socket that we want to send the conversations back to
  */
-function retrieveAllConversations(clientID, callback) {
+function retrieveAllConversations(clientID, socket, callback) {
 
   try {
     _dbmethods.searchAllClientConversations(clientID, function(err, convRows) {
       if(!err) {
-
+        var convArray = []
+        var clientProfileHash = {};
+        var clientIDArray = [];     // Array of client profiles that we need
+        if(convRows != null) {
+          var convRowLen = convRows.length;
+          for (var i = 0; i < convRowLen; i++) {
+            var thisRow = convRows[i];
+            convArray.push(thisRow); // add the JSON to the array
+            if("clientIDs" in thisRow) {
+              // now we need to get each of the client profiles
+              clientIDVals = thisRow["clientIDs"];
+              // Get an array of clients
+              var clientIDar = clientIDVals.split(",");
+              for(var j = 0; j < clientIDar.length; j++) {
+                if (clientIDArray.indexOf(clientIDar[j]) == -1) {
+                  // is not in the array so add it
+                  clientIDArray.push(clientIDar[j]);
+                }
+              }
+            }
+            logger.info("conv: " + JSON.stringify(thisRow));
+          }
+        }
+        callback(false, convArray);
       }
       else {
-
+        logger.error("Error attempting to list all chat conversations for clientID: " + clientID);
+        callback(true, null);
       }
     });    
   }
@@ -548,6 +610,7 @@ function retrieveAllConversations(clientID, callback) {
 }
 
 
+// queryClientProfile(targetClientID, sessionID, callback)
 
 
 

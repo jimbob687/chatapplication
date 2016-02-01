@@ -310,6 +310,13 @@
         }
       });
 
+      socket.on('allchatconv', function(convData) {
+        // all the chat conversations that have been sent through
+        for(var i = 0; i < convData.length; i++) {
+          console.log("Chat sessions: " + JSON.stringify(convData[i]));
+        }
+      });
+
       socket.on('chatcreatefail', function(returnData) {
         console.log("Unable to start chat due to permission issues");
       });
