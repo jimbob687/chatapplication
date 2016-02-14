@@ -211,7 +211,9 @@ function queryChatSessionDB(clientID, permHash, callback) {
 
 /*
  * Get the profile information for a client. Will try redis first, if not in redis then query api and populate redis
+ * Moved to commonchat.js
  */
+/*
 function queryClientProfile(targetClientID, sessionID, callback) {
 
   try {
@@ -260,11 +262,14 @@ function queryClientProfile(targetClientID, sessionID, callback) {
   }
 
 }
+*/
 
 
 /*
  * Function to get client profiles
+ * Moved to commonchat.js
  */
+/*
 function grabClientProfiles(sessionID, permHash, callback) {
 
   try {
@@ -276,7 +281,7 @@ function grabClientProfiles(sessionID, permHash, callback) {
     // iterate the client hash
     for(var targetClientID in permHash) {
       logger.debug("About to get profile for clientID: " + targetClientID);
-      queryClientProfile(targetClientID, sessionID, function(err, clientProfile) {
+      _commonchat.queryClientProfile(targetClientID, sessionID, function(err, clientProfile) {
         elementsFound++;   // increment the number of object processed
         // let's get the client profile, first from redis, and api if not in redis
         if(!err) {
@@ -300,6 +305,7 @@ function grabClientProfiles(sessionID, permHash, callback) {
   }
 
 }
+*/
 
 
 
@@ -375,7 +381,7 @@ function runChatStart(clientID, sessionID, socket, dataHash, callback) {
               queryChatSessionDB(clientID, permHash, function(err, chatSessionID) {
                 if(!err) {
                   returnHash["chatsessionid"] = chatSessionID;
-                  grabClientProfiles(sessionID, permHash, function(err, clientProfilesHash) {
+                  _commonchat.grabClientProfiles(sessionID, permHash, function(err, clientProfilesHash) {
                     if(!err) {
                       returnHash["clientprofiles"] = clientProfilesHash;
                       getClientStatus(permHash, function(err, clientStatusHash) {

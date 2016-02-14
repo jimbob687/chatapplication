@@ -122,7 +122,7 @@ module.exports = {
           checkJsessionID(socket, jsessionID, function(err, returnjSession) {
             // not sure what needs to be done with this callback
           });
-          retrieveAllConversations(clientID, function(err, convHash) {
+          retrieveAllConversations(clientID, socket, jsessionID, function(err, convHash) {
             if(!err) {
               // send back all the conversations to the client
               io.emit("allchatconv", convHash);
@@ -404,7 +404,7 @@ function adminProfile(sessionID, socket, callback) {
           clientID = adminJson.sTarget_AdminID;
 
           /* This is here as a temporary measure until I can figure out where it is meant to go */
-          retrieveAllConversations(clientID, socket, function(err, convHash) {
+          retrieveAllConversations(clientID, socket, sessionID, function(err, convHash) {
             if(!err) {
               logger.info("Have finished retrieveAllConversations");
               returnData["allchatconv"] = convHash;
@@ -567,13 +567,15 @@ function removeSocketFromHash(remClientID, remJsessionID) {
  * clientID - ID of the client we want the chats for
  * socket - Socket that we want to send the conversations back to
  */
-function retrieveAllConversations(clientID, socket, callback) {
+function retrieveAllConversations(clientID, socket, sessionID, callback) {
+
+  logger.info("------------In retrieveAllConversations--------------");
 
   try {
     _dbmethods.searchAllClientConversations(clientID, function(err, convRows) {
       if(!err) {
+        var returnHash = {};
         var convArray = []
-        var clientProfileHash = {};
         var clientIDArray = [];     // Array of client profiles that we need
         if(convRows != null) {
           var convRowLen = convRows.length;
@@ -591,11 +593,38 @@ function retrieveAllConversations(clientID, socket, callback) {
                   clientIDArray.push(clientIDar[j]);
                 }
               }
+
+            
             }
             logger.info("conv: " + JSON.stringify(thisRow));
           }
+          returnHash["conv"] = convArray;
         }
-        callback(false, convArray);
+
+        // get all the profiles for the clients
+        _commonchat.grabClientProfiles(sessionID, clientIDArray, function(err, clientProfilesHash) {
+          if(!err) {
+            returnHash["clientprofiles"] = clientProfilesHash;
+            getClientStatus(permHash, function(err, clientStatusHash) {
+              // get the client statuses
+              if(!err) {
+                returnHash["clientstatus"] = clientStatusHash;
+              }
+              else {
+                // log an error but proceed anyway
+                logger.error("Error atttempting to client statuses for chat sessioID: " + chatSessionID);
+                returnHash["clientstatus"] = {};     // put an empty hash in
+              }
+              callback(false, returnHash);
+            });
+          }
+          else {
+            logger.error("Error attempting to start chat when querying client profiles");
+            callback(true, null);
+          }
+
+        });
+
       }
       else {
         logger.error("Error attempting to list all chat conversations for clientID: " + clientID);
