@@ -163,6 +163,7 @@ module.exports = {
             logger.error("Error, unable to get client profile for clientID: " + targetClientID);
           }
           if(elementsFound >= permHashLen) {
+            logger.info("----Returning profiles------------");
             // we have processed all the keys
             callback(false, clientProfilesHash);
           }

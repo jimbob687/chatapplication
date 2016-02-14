@@ -47,16 +47,6 @@ module.exports = {
             // not sure what needs to be done with this callback
           });
 
-          /* 
-           * This is here as a temporary measure until I can figure out where it is meant to go
-           * Will create a list of conversations for the client 
-          */
-          /*
-          retrieveAllConversations(clientID, function(err, convHash) {
-            logger.info("Have finished retrieveAllConversations");
-          });
-          */
-
         }
         else {
           logger.debug("Socket doesn't have a clientid so need to get from the db");
