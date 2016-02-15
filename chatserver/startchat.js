@@ -208,107 +208,6 @@ function queryChatSessionDB(clientID, permHash, callback) {
 
 
 
-
-/*
- * Get the profile information for a client. Will try redis first, if not in redis then query api and populate redis
- * Moved to commonchat.js
- */
-/*
-function queryClientProfile(targetClientID, sessionID, callback) {
-
-  try {
-
-    _redismethods.fetchClientProfile(targetClientID, function(err, profileJson) {
-      if(!err) {
-        if(profileJson == null) {
-          // nothing in redis so need to call the api
-          _profileapi.queryClientProfileAPI(sessionID, targetClientID, function(err, profileJson) {
-            if(!err) {
-              if(profileJson == null) {
-                // we have a problem at this point
-                callback(true, null);
-              }
-              else {
-                // let's add it to redis
-                _redismethods.addClientProfile(targetClientID, profileJson, function(err, redisReply) {
-                  if(err) {
-                    logger.error("Error, unable to add profile to redis for clientID: " + targetClientID);
-                  }
-                  callback(false, profileJson);
-                });
-              }
-            }
-            else {
-              logger.error("Error attempting to get profile for clientID: " + targetClientID + " from API");
-              callback(true, null);
-            }
-          });
-        }
-        else {
-          // profile has been taken from redis, so return it
-          callback(false, profileJson);
-        }
-      }
-      else {
-        logger.error("Error attempting to fetch profile from redis for clientID: " + clientID);
-        callback(true, null);
-      }
-    });
-
-  }
-  catch(e) {
-    logger.error("Exception attempting to fetch profile for clientID: " + clientID);
-    callback(true, null);
-  }
-
-}
-*/
-
-
-/*
- * Function to get client profiles
- * Moved to commonchat.js
- */
-/*
-function grabClientProfiles(sessionID, permHash, callback) {
-
-  try {
-
-    var clientProfilesHash = {};
-    var elementsFound = 1;   // number of keys that have been processed
-    var permHashLen = Object.keys(permHash).length;    // get length of permHash
-
-    // iterate the client hash
-    for(var targetClientID in permHash) {
-      logger.debug("About to get profile for clientID: " + targetClientID);
-      _commonchat.queryClientProfile(targetClientID, sessionID, function(err, clientProfile) {
-        elementsFound++;   // increment the number of object processed
-        // let's get the client profile, first from redis, and api if not in redis
-        if(!err) {
-          clientProfilesHash[targetClientID] = JSON.parse(clientProfile);
-          logger.debug("Client profile: " + clientProfile);
-        }
-        else {
-          logger.error("Error, unable to get client profile for clientID: " + targetClientID);
-        }
-        if(elementsFound >= permHashLen) {
-          // we have processed all the keys
-          callback(false, clientProfilesHash);
-        }
-      });
-    }
-
-  }
-  catch(e) {
-    logger.error("Exception attempting to obtain client profiles " + e);
-    callback(true, null);
-  }
-
-}
-*/
-
-
-
 /*
  * Function to get client statuses from redis e.g. online, busy, offline etc
  */
@@ -372,7 +271,7 @@ function runChatStart(clientID, sessionID, socket, dataHash, callback) {
         _startchat.checkAdminPermissions(returndata.perms, function(err, permHash) {
           if(!err) {
             // The client hash permissions to add other clients to the chat
-            logger.debug("Perm Hash: " + permHash);
+            logger.info("Perm Hash: " + permHash);
             logger.info("Perms are OK");
             if("clientid" in socket) {
               var clientID = socket.clientid;

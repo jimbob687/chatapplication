@@ -140,6 +140,33 @@ module.exports = {
   },
 
 
+  // Iterate an array of clientIDs and return the profiles for each
+  grabClientProfilesArray: function(sessionID, clientIDarray, callback) {
+
+    try {
+      var clientProfilesHash = {};
+      var recordsReturned = 0;
+      for(var i = 0; i < clientIDarray.length; i++) {
+        grabClientProfile(sessionID, targetClientID, function(err, clientProfile) {
+          recordsReturned++;
+          if(!err) {
+            clientProfilesHash[targetClientID] = clientProfile;
+          }
+          if(recordsReturned == clientIDarray.length) {
+            // All the records have been returned
+            callback(false, clientProfilesHash);
+          }
+        });
+      }
+    }
+    catch(e) {
+      logger.error("Exception attempting to iterate clientIDs for profiles: " + e);
+      callback(true, null);
+    }
+
+  },
+
+
   // Function to get client profiles
   grabClientProfiles: function(sessionID, permHash, callback) {
 
@@ -175,6 +202,32 @@ module.exports = {
       logger.error("Exception attempting to obtain client profiles " + e);
       callback(true, null);
     }
+
+  }
+
+}
+
+
+function grabClientProfile(sessionID, targetClientID, callback) {
+
+  try {
+
+    _profileapi.queryClientProfile(targetClientID, sessionID, function(err, clientProfile) {
+      elementsFound++;   // increment the number of object processed
+      // let's get the client profile, first from redis, and api if not in redis
+      if(!err) {
+        callback(false, clientProfile);
+      }
+      else {
+        logger.error("Error, unable to get client profile for clientID: " + targetClientID);
+        callack(true, null);
+      }
+    )};
+    
+
+
+  }
+  catch(e) {
 
   }
 

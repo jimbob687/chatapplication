@@ -396,6 +396,8 @@ function adminProfile(sessionID, socket, callback) {
           /* This is here as a temporary measure until I can figure out where it is meant to go */
           retrieveAllConversations(clientID, socket, sessionID, function(err, convHash) {
             if(!err) {
+              logger.info("Returning convHash: " + JSON.stringify(convHash) );
+              io.emit("allchatconv", convHash);
               logger.info("Have finished retrieveAllConversations");
               returnData["allchatconv"] = convHash;
             }
@@ -592,6 +594,7 @@ function retrieveAllConversations(clientID, socket, sessionID, callback) {
         }
 
         // get all the profiles for the clients
+        logger.info("About to grab profiles for clientIDs: " + JSON.stringify(clientIDArray));
         _commonchat.grabClientProfiles(sessionID, clientIDArray, function(err, clientProfilesHash) {
           if(!err) {
             returnHash["clientprofiles"] = clientProfilesHash;
