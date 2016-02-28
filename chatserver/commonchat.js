@@ -168,18 +168,21 @@ module.exports = {
 
 
   // Function to get client profiles
-  grabClientProfiles: function(sessionID, permHash, callback) {
+  grabClientProfiles: function(sessionID, clientIDArray, callback) {
 
     try {
 
       var clientProfilesHash = {};
       var elementsFound = 1;   // number of keys that have been processed
-      var permHashLen = Object.keys(permHash).length;    // get length of permHash
+      //var permHashLen = Object.keys(permHash).length;    // get length of permHash
+
+      logger.info("clientIDArray: " + JSON.stringify(clientIDArray));
 
       // iterate the client hash
-      for(var targetClientID in permHash) {
+      for(var i = 0; i < clientIDArray.length; i++) {
+        targetClientID = clientIDArray[i];
         logger.debug("About to get profile for clientID: " + targetClientID);
-        _profileapi.queryClientProfile(targetClientID, sessionID, function(err, clientProfile) {
+        _profileapi.queryClientProfileAPI(targetClientID, sessionID, function(err, clientProfile) {
           elementsFound++;   // increment the number of object processed
           // let's get the client profile, first from redis, and api if not in redis
           if(!err) {
@@ -189,7 +192,7 @@ module.exports = {
           else {
             logger.error("Error, unable to get client profile for clientID: " + targetClientID);
           }
-          if(elementsFound >= permHashLen) {
+          if(elementsFound >= clientIDArray.length) {
             logger.info("----Returning profiles------------");
             // we have processed all the keys
             callback(false, clientProfilesHash);
@@ -199,7 +202,49 @@ module.exports = {
 
     }
     catch(e) {
-      logger.error("Exception attempting to obtain client profiles " + e);
+      logger.error("Exception attempting to obtain client profiles " + e + "\n" + e.stack);
+      callback(true, null);
+    }
+
+  },
+
+
+
+  getClientStatus: function(clientIDArray, callback) {
+    /*
+     * Function to get client statuses from redis e.g. online, busy, offline etc
+     */
+
+    try {
+      logger.debug("In getClientStatus");
+
+      var clientStatusHash = {};
+      var elementsFound = 1;   // number of keys that have been processed
+      //var permHashLen = Object.keys(permHash).length;    // get length of permHash
+
+      // fetchClientStatus: function(clientID, callback)
+      for(var i = 0; i < clientIDArray.length; i++) {
+        var targetClientID = clientIDArray[i];
+        logger.debug("Getting status for clientID: " + targetClientID);
+        _redismethods.fetchClientStatus(targetClientID, function(err, clientStatus) {
+          elementsFound++;   // increment the number of object processed
+          if(!err) {
+            logger.debug("Adding status of " + JSON.stringify(clientStatus) + " for clientID: " + targetClientID);
+            clientStatusHash[targetClientID] = clientStatus;
+          }
+          else {
+            logger.error("Error, unable to get client status for clientID: " + targetClientID);
+          }
+          if(elementsFound >= clientIDArray.length) {
+            // we have processed all the keys so return the hash
+            callback(false, clientStatusHash);
+          }
+        });
+      }
+
+    }
+    catch(e) {
+      logger.error("Exception attempting to get client statuses " + e);
       callback(true, null);
     }
 
@@ -222,13 +267,13 @@ function grabClientProfile(sessionID, targetClientID, callback) {
         logger.error("Error, unable to get client profile for clientID: " + targetClientID);
         callack(true, null);
       }
-    )};
-    
+    });
+
 
 
   }
   catch(e) {
-
+     logger.error("Exception attempting to get client profile for clientID: " + targetClientID);
   }
 
 }
@@ -288,5 +333,3 @@ function adminProfile(sessionID, callback) {
   });
 
 }
-
-

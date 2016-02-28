@@ -1,6 +1,6 @@
 
 /*
- * This module is designed to handle incoming socket requests 
+ * This module is designed to handle incoming socket requests
  *
  * A socket should have the following properties
  * clientid - ID of the client
@@ -10,7 +10,7 @@
 
 
 /* Hash of the socket connections, key is the clientID and value is the socket object
- *   value is an hash with 
+ *   value is an hash with
  *       - key is the jsessionid
  *       - value is a hash with keys:-
  *           sessionid - is the jsessionID associated with the socket
@@ -38,7 +38,7 @@ module.exports = {
           logger.error("Error, socket is null in data");
         }
 
-        // Adapted from the following link to be able to send a cookie thru when connecting. 
+        // Adapted from the following link to be able to send a cookie thru when connecting.
         // http://stackoverflow.com/questions/4753957/socket-io-authentication
         if("clientid" in socket) {
           logger.info("clientid of socket: " + socket.clientid);
@@ -66,7 +66,7 @@ module.exports = {
         }
 
       });
- 
+
 
       socket.on('clientlookup', function(dataHash, jsessionID) {
         if("clientid" in socket) {
@@ -98,7 +98,7 @@ module.exports = {
             else {
 
             }
-            
+
           });
         }
       });
@@ -120,7 +120,7 @@ module.exports = {
             else {
               logger.error("Error attempting to retrieve conversations for clientID: " + clientID);
             }
-          });          
+          });
         }
         else {
           adminProfile(jsessionID, socket, function(err, returndata) {
@@ -141,7 +141,7 @@ module.exports = {
         }
         checkJsessionID(socket, jsessionID, function(err, returnjSession) {
           // not sure what needs to be done with this callback
-        }); 
+        });
         if("clientid" in socket) {
           //clientNameSearch(jsessionID, socket, dataHash);
           _startchat.processChatStart(socket.clientid, jsessionID, socket, dataHash, function(err, returnHash) {
@@ -183,6 +183,7 @@ module.exports = {
 
 
       socket.on('keepalive', function(jsessionID, clientStatus, clientType) {
+        logger.info("Client keepalive request");
         // The client should send a keepalive to the central app to say that they are online, used to show a user status
         var clientID = null;
         if("clientid" in socket) {
@@ -195,19 +196,30 @@ module.exports = {
           });
         }
         else {
-          adminProfile(jsessionID, socket, function(err, returndata) {
-            if(!err) {
-              _redismethods.setKeepalive(clientID, clientType, clientStatus, function(err, returnData) {
-                // insert record into db, not sure if we need to do a callback here
-              });
+          if(jsessionID != null) {
+            adminProfile(jsessionID, socket, function(err, returndata) {
+              if(!err) {
+                _redismethods.setKeepalive(clientID, clientType, clientStatus, function(err, returnData) {
+                  // insert record into db, not sure if we need to do a callback here
+                });
 
-              if("allchatconv" in returndata) {
-                // return the data to the client
-                io.emit("allchatconv", returndata.allchatconv);
+                if("allchatconv" in returndata) {
+                  // return the data to the client
+                  logger.info("Returning allchatconv data to client")
+                  io.emit("allchatconv", returndata.allchatconv);
+                }
+                else {
+                  logger.error("Error, no allchatconv in return data for client");
+                }
               }
-            }
-
-          });
+              else {
+                logger.error("Error attempting to retrieve adminProfile");
+              }
+            });
+          }
+          else {
+            logger.info("jsessionID is null for client keepalive request");
+          }
         }
       });
 
@@ -339,7 +351,7 @@ function addSocketClientHash(sessionID, socket, clientID) {
   //logger.debug("Added to socketClientHash for clientID: " + clientID + " hash: " + JSON.stringify(sessionHash));
   logger.debug("Added to socketClientHash for clientID: " + clientID);
 
-  return true;  
+  return true;
 }
 
 
@@ -543,7 +555,7 @@ function removeSocketFromHash(remClientID, remJsessionID) {
       if(remJsessionID in thisClientHash) {
         thisClientHash[remJsessionID] = null;
         socketClientHash[remClientID] = thisClientHash;
-      }  
+      }
     }
 
   }
@@ -586,7 +598,7 @@ function retrieveAllConversations(clientID, socket, sessionID, callback) {
                 }
               }
 
-            
+
             }
             logger.info("conv: " + JSON.stringify(thisRow));
           }
@@ -597,8 +609,9 @@ function retrieveAllConversations(clientID, socket, sessionID, callback) {
         logger.info("About to grab profiles for clientIDs: " + JSON.stringify(clientIDArray));
         _commonchat.grabClientProfiles(sessionID, clientIDArray, function(err, clientProfilesHash) {
           if(!err) {
+            logger.info("clientProfilesHash: " + JSON.stringify(clientProfilesHash));
             returnHash["clientprofiles"] = clientProfilesHash;
-            getClientStatus(permHash, function(err, clientStatusHash) {
+            _commonchat.getClientStatus(clientIDArray, function(err, clientStatusHash) {
               // get the client statuses
               if(!err) {
                 returnHash["clientstatus"] = clientStatusHash;
@@ -623,7 +636,7 @@ function retrieveAllConversations(clientID, socket, sessionID, callback) {
         logger.error("Error attempting to list all chat conversations for clientID: " + clientID);
         callback(true, null);
       }
-    });    
+    });
   }
   catch(e) {
     callback(true, e);
@@ -633,6 +646,3 @@ function retrieveAllConversations(clientID, socket, sessionID, callback) {
 
 
 // queryClientProfile(targetClientID, sessionID, callback)
-
-
-

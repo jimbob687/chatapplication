@@ -6,12 +6,14 @@ var bodyParser = require('body-parser')
 app.use( bodyParser.json() );       // to support JSON-encoded bodies
 app.use(bodyParser.urlencoded({     // to support URL-encoded bodies
   extended: true
-})); 
+}));
 var json = require('express-json');
 app.use(json());       // to support JSON-encoded bodies
 var crypto = require('crypto');
 
 var moment = require('moment');
+
+var asynclib = require('async');
 
 //var emitter = require('events');
 //emitter.setMaxListeners(100);
@@ -57,7 +59,7 @@ global.logger = new (winston.Logger)({
         return moment(new Date()).format("YYYY-MM-DD HH:mm:ss");
       },
       formatter: function(options) {
-        // Return string will be passed to logger. 
+        // Return string will be passed to logger.
         return options.timestamp() +' '+ options.level.toUpperCase() +' '+ (undefined !== options.message ? options.message : '') +
           (options.meta && Object.keys(options.meta).length ? '\n\t'+ JSON.stringify(options.meta) : '' );
       }
@@ -67,8 +69,8 @@ global.logger = new (winston.Logger)({
 
 
 
-/* 
-  These functions below are to add line number to the logging messages, should be able to create a single method 
+/*
+  These functions below are to add line number to the logging messages, should be able to create a single method
   To iterate all the winston levels      for (var func in winston.levels) {
   Gets an undefined error for some reason, might have something to do with traceback
 */
@@ -139,7 +141,7 @@ logger.level = 'debug';
 /*
 // Hash of the socket connections, key is the clientID and value is the socket object
 var socketClientHash = {};
-// Hash of the socket connections, key is the JSESSIONID and value is the clientID 
+// Hash of the socket connections, key is the JSESSIONID and value is the clientID
 // e.g. { JSESSIONID1: 6576, JSESSIONID2: 9845 }
 var socketSessionHash = {};
 */
@@ -253,7 +255,7 @@ global.externalIP = null;
 var intfaces = os.networkInterfaces();
 
 /*
- * This is a set of functions to get the IPAddress and hostname of server to set up in the db, this in future 
+ * This is a set of functions to get the IPAddress and hostname of server to set up in the db, this in future
  * will want to use a request to a central chat server to get this data
  */
 logger.debug("NetInterfaces: " + JSON.stringify(intfaces));
@@ -277,7 +279,7 @@ Object.keys(intfaces).forEach(function (ifname) {
       logger.debug(ifname + ':' + alias, iface.address);
       externalIP = iface.address;
       ++alias;
-    } 
+    }
     else {
       // this interface has only one ipv4 adress
       logger.debug(ifname, iface.address);
@@ -362,7 +364,7 @@ var socketcontroller = iocontroller.connect(controllerURL, {reconnect: true});
 
 logger.info("About to try to create a socket connection");
 // Add a connect listener
-socketcontroller.on('connect', function(socketcontroller) { 
+socketcontroller.on('connect', function(socketcontroller) {
   logger.info('Connected!');
 });
 
@@ -467,7 +469,7 @@ function adminProfile(sessionID, socket, callback) {
           insertDbSessionID(sessionID, clientID, function(err, chatsessionID) {
             if(!err) {
               logger.debug("Need to update hash for chatsessionID: " + chatsessionID + " and clientID: " + clientID);
-              
+
               if(clientID !== null) {
                 // add the sessionID to the hash
                 socketSessionHash[sessionID] = clientID;
@@ -567,7 +569,7 @@ function searchSessionID(sessionID, socket, dataHash, callback) {
         if(socket !== null) {
           clientHash["socket"] = socket;
         }
-        
+
         if("clientID" in resultRow) {
           socketClientHash[resultRow.clientID] = clientHash;
           if(socket != null) {
@@ -597,7 +599,7 @@ function processMessage(sessionID, socket, dataHash) {
   if("message" in dataHash) {
     message = dataHash.message;
   }
-  
+
   // This will send to message back to the client
   io.emit('chat message', dataHash.message);
 }
@@ -606,7 +608,7 @@ function processMessage(sessionID, socket, dataHash) {
 
 /*
  * Function to process the incoming message, is assumed that we know who the socket belongs to
- * sessionID - the JSESSIONID 
+ * sessionID - the JSESSIONID
  * socket - socket of the server
  * dataHash - Hash of the session
  *  Moved to socket conn
@@ -765,7 +767,3 @@ http.listen(expressConfig.port, function(){
   app.use('/fonts', express.static(__dirname + '/fonts'));
 
 });
-
-
-
-

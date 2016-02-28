@@ -3,15 +3,15 @@
   <head>
     <title>Socket.IO chat</title>
     <style>
-      * { 
+      * {
         margin: 0;
         padding: 0;
         box-sizing: border-box;
       }
-      body { 
-        font: 13px Helvetica, Arial; 
+      body {
+        font: 13px Helvetica, Arial;
       }
-      form { 
+      form {
         background: #000;
         padding: 3px;
         position: fixed;
@@ -19,19 +19,19 @@
         width: 100%;
       }
 
-      form input { 
+      form input {
         border: 0;
-        padding: 10px; 
-        width: 90%; 
-        margin-right: .5%; 
+        padding: 10px;
+        width: 90%;
+        margin-right: .5%;
       }
 
       form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
-      #submitform { 
-        background: #000; 
-        padding: 3px; 
-        position: fixed; 
-        bottom: 0; 
+      #submitform {
+        background: #000;
+        padding: 3px;
+        position: fixed;
+        bottom: 0;
         width: 50%;
         float: left;
       }
@@ -75,7 +75,7 @@
 	background-color: transparent;
 	cursor: pointer;
 	font-size: 11px !important;
-        color: gray; 
+        color: gray;
       }
 
       .cancelbtn {
@@ -147,7 +147,7 @@
 	height: 100%;
 	width: 20px;
 	float: left;
-	background-color: #f5f5f5;	
+	background-color: #f5f5f5;
 	border-radius: 3px;
 	padding-left: 5px;
       }
@@ -176,7 +176,7 @@
         position: relative;
         margin-top: 10px;
         margin-bottom: 10px;
-        float: right; 
+        float: right;
         margin-right: 0;
       }
 
@@ -213,7 +213,7 @@
       for (var i=0; i < aCookie.length; i++) {
         // a name/value pair (a crumb) is separated by an equal sign
         var aCrumb = aCookie[i].split("=");
-        if (cookieName == aCrumb[0]) 
+        if (cookieName == aCrumb[0])
           return unescape(aCrumb[1]);
       }
       // a cookie with the requested name does not exist
@@ -228,7 +228,7 @@
       var keepaliveInterval = null;
 
       /*
-       * Function to send a keepalive to show that the user is online, if the 
+       * Function to send a keepalive to show that the user is online, if the
        */
       function sendKeepalive() {
         console.log("Generating a keepalive");
@@ -236,7 +236,7 @@
         if(jsessionID !== undefined) {
           socket.emit("keepalive", jsessionID, userStatus, "browser");
         }
-      } 
+      }
 
       var socket = io("/");
       socket.on('connect', function() {
@@ -252,7 +252,7 @@
           // clear the interval on a reconnect
           clearInterval(keepaliveInterval);
         }
-        keepaliveInterval = setInterval(sendKeepalive, 40000); // the interval timer to do the keepalive
+        keepaliveInterval = setInterval(sendKeepalive, 10000); // the interval timer to do the keepalive
       });
 
 
@@ -282,7 +282,7 @@
         dataHash["type"] = "message";
         dataHash["message"] = $('#m').val();
         dataHash["to"] = "TBD";
-        
+
         socket.emit('data', dataHash, jsessionID);
 
         // socket.emit('data', "james", $('#m').val(), jsessionID);    Deprecated due to now using a hash
@@ -302,7 +302,7 @@
           randomHash = returnData.randomhash;
           console.log("randomHash: " + randomHash);
         }
- 
+
         if(randomHash in pendingAutoComplete) {
           var autocompleteResponse = pendingAutoComplete[randomHash];
           var data = returnData.data;
@@ -342,11 +342,11 @@
       });
 
       $("#adminloginbtn").on('click', function(){
-		
+
         $("#loginerrordiv").empty();
-		
+
         $("#adminloginbtn").prop("disabled", true);
-		
+
         var userName = $("#sUserName").val();
         var passWord = $("#sPwd").val();
 
@@ -356,11 +356,11 @@
           dataType: 'json',
           data: {
             username : userName,
-            password : passWord, 
-          },    	
-          success: function(data) {				
-            //$("#adminloginbtn").prop("disabled", false);				
-            $("#loginsuccessform").submit();  
+            password : passWord,
+          },
+          success: function(data) {
+            //$("#adminloginbtn").prop("disabled", false);
+            $("#loginsuccessform").submit();
           },
           error: function(jqXHR, status, error) {
             console.log("Login failure");
@@ -371,20 +371,20 @@
             if("message" in errArray) {
               addErrorMessage(errArray.message);
             }
-          }			
+          }
         });
       });
 
 
       $("#addhaciendabtn").on("click", function() {
         if(!$("#newhaciendadiv").is(":visible")) {
-          $("#newhaciendadiv").show(); 
+          $("#newhaciendadiv").show();
           $(this).hide();   // hide the button
         }
       });
 
       $("#newhaciendacancelbtn").on("click", function() {
-        $("#newhaciendadiv").hide(); 
+        $("#newhaciendadiv").hide();
         $("#addhaciendabtn").show();   // hide the button
         $("#newhaciendanameinput").val('');
         $("#newhaciendainvitees").val('');
@@ -393,7 +393,7 @@
 
       // automatically make the textarea larger
       //$('#newhaciendainvitees').autogrow({vertical: true, horizontal: false});
-  
+
 
       // To autoexpand text area, taken from http://codepen.io/vsync/pen/frudD
       $('#newhaciendainvitees').one('focus', function(){
@@ -418,7 +418,7 @@
 
 
       function autoCompleteName(element, completetype) {
-        // How to do autocomplete with jquery and socket.io    
+        // How to do autocomplete with jquery and socket.io
         // http://stackoverflow.com/questions/18596053/jquery-ui-autocomplete-websockets-implementation
         $(element).autocomplete({
           width: 300,
@@ -442,7 +442,7 @@
             var dataHash = {};
             dataHash["randomhash"] = randomHash;
             dataHash["term"] = term;
-        
+
             socket.emit('clientlookup', dataHash, jsessionID);
             //socket.send(term);
             pendingAutoComplete[randomHash] = response;
@@ -450,7 +450,7 @@
           select: function( event, ui) {
             console.log("Just selected a record");
             console.log("ui: " + JSON.stringify(ui));
-            
+
             var itemHash = null;
             var chatName = null; // name of person who we want to chat with
             var chatNameID = null; // Is of the admin who we want to chat with
@@ -480,7 +480,7 @@
               chataddrspan.style.width = "auto";
               chataddrspan.innerHTML = chatName;
               chataddrdiv.appendChild(chataddrspan);
-    
+
               var chataddrremove = document.createElement('div');
               chataddrremove.className = 'tannfeemailaddrremove';
               chataddrdiv.appendChild(chataddrremove);
@@ -489,7 +489,7 @@
               chataddrremovebtn.className = 'cancelbtn';
               chataddrremovebtn.innerHTML = '<i class="fa fa-times fa-lg"></i>';
               chataddrremove.appendChild(chataddrremovebtn);
-            
+
 
               $(chataddrremovebtn).on("click", function() {
                 // remove the user
@@ -515,7 +515,7 @@
               chataddrspan.style.width = "auto";
               chataddrspan.innerHTML = chatName;
               chataddrdiv.appendChild(chataddrspan);
-    
+
               var chataddrremove = document.createElement('div');
               chataddrremove.className = 'tannfeemailaddrremove';
               chataddrdiv.appendChild(chataddrremove);
@@ -524,7 +524,7 @@
               chataddrremovebtn.className = 'cancelbtn';
               chataddrremovebtn.innerHTML = '<i class="fa fa-times fa-lg"></i>';
               chataddrremove.appendChild(chataddrremovebtn);
-            
+
 
               $(chataddrremovebtn).on("click", function() {
                 // remove the user
@@ -546,13 +546,13 @@
 
       $("#addcontactbtn").on("click", function() {
         if(!$("#newcontactdiv").is(":visible")) {
-          $("#newcontactdiv").show(); 
+          $("#newcontactdiv").show();
           $(this).hide();   // hide the button
         }
       });
 
       $("#newcontactcancelbtn").on("click", function() {
-        $("#newcontactdiv").hide(); 
+        $("#newcontactdiv").hide();
         $("#addcontactbtn").show();   // hide the button
         $("#newchatinvitees").val('');
         $(".chatinviteediv").remove();
@@ -574,7 +574,7 @@
           inviteeIdArray.push(this.id);
         });
         var jessionID = null;
-        jsessionID = GetCookie('JSESSIONID'); 
+        jsessionID = GetCookie('JSESSIONID');
         var dataHash = {};
         dataHash["inviteeid"] = inviteeIdArray;
         dataHash["randomhash"] = randomHash;
@@ -584,7 +584,7 @@
 
 
 
-      addContact("1"); 
+      addContact("1");
 
     });
 
@@ -595,9 +595,9 @@
       contactLi.className = "chatcontactli";
       contactLi.setAttribute("chatid", chatID);
       contactLi.setAttribute("tabindex", "0");
-        
+
       $("#contactlistul").append(contactLi)
-        
+
       /* Leaving out the anchor */
 
       var contactDiv = document.createElement('div');
@@ -623,7 +623,7 @@
       contactImg.style.height = "32px";
       contactImg.className = "chatcontactimg";
       imageContactDiv.appendChild(contactImg);
-        
+
 
       var imgContactUnderDiv = document.createElement('div');
       imgContactUnderDiv.className = "imgcontactunderdiv";
@@ -639,7 +639,7 @@
       chatStatusInnerDiv.className = "chatstatusinnerdiv";
       chatStatusDiv.appendChild(chatStatusInnerDiv);
 
-        
+
       /* Name of the client */
       var chatNameDiv = document.createElement('div');
       chatNameDiv.className = "chatclientnamediv";
@@ -650,7 +650,7 @@
       var chatName2Div = document.createElement('div');
       chatName2Div.className = "chatclientname2div";
       contactDiv.appendChild(chatName2Div);
-        
+
     }
 
 
@@ -662,19 +662,19 @@
 
       <div id="loginform" class="tannfeloginform">
         <div id="loginerrordiv" class="tannfeerrordiv" style="width: 250px; height: 20px; float:left;" ></div>
-	
+
         <span style="margin: 0 auto; display: inline-block; margin: 10px 5px 10px 5px;">
-				
+
           <div class="tannfeloginlabeldiv" >
             <label for="sUserName" class="tannfeloginlabel" >User Name</label>
           </div>
           <div class="tannfelogintextdiv" >
             <input type="text" id="sUserName" name="sUserName" class="tannfelogintext" spellcheck="false"/>
-          </div> 
-			
+          </div>
+
           <div class="tannfeloginlabeldiv" ><label for="sPwd" class="tannfeloginlabel" >Password</label></div>
           <div class="tannfelogintextdiv" ><input type="password" id="sPwd" name="sPwd" class="tannfelogintext" /></div>
-			
+
           <div class="tannfeloginlabeldiv" ><input type="checkbox" name="sRememberMe" value="true"></div>
           <div class="tannfeloginlabeldiv" ><label for="sRememberMe" class="tannfeloginlabel" >Remember Me</label></div>
 
@@ -693,7 +693,7 @@
     <div id="chatlistingdiv" class="chatdiv"  style="width: 200px;">
 
       <div id="covwindow" class="chatdiv"  style="width: 100%;">
-    
+
         <div id="haciendadiv" style="width: 180px; float: left; margin-bottom: 10px;">
 
           <div id="haciendatitle" style="float: left; width: 100%; position: relative; height: 28px;">
@@ -706,7 +706,7 @@
             </div>
 
           </div>
- 
+
           <div id="newhaciendadiv" class="chatcreateboxdiv">
 
             <div id="newhaciendacancel" style="width: 100%; float: left;">
@@ -725,9 +725,9 @@
             <div class="chatlabeldiv">
               <label id="newhaciendainviteeslabel" style="width: 100%; float: left;">Invitees</label>
             </div>
- 
+
             <div id="newhaciendainviteesdiv" style="width: 100%; float: left; border-style: solid; border-width: 1px;">
-              <textarea id="newhaciendainvitees" class="chattextarea" rows="1" spellcheck="false" autocomplete="false" autocapitalize="off" autocorrect="off"></textarea>   
+              <textarea id="newhaciendainvitees" class="chattextarea" rows="1" spellcheck="false" autocomplete="false" autocapitalize="off" autocorrect="off"></textarea>
             </div>
 
             <div id="haciendacreatebtndiv" style="width: 100%; float: left;">
@@ -742,7 +742,7 @@
 
 
         <div id="contactwindow" style="width: 180px; float: left;">
-     
+
           <div id="contacttitle" style="float: left; width: 100%; position: relative; height: 28px;">
             <h4 class="chatheading">Contacts</h4>
 
@@ -773,7 +773,7 @@
           </div>
 
           <div id="newchatinviteesdiv" style="width: 100%; float: left; border-style: solid; border-width: 1px;">
-            <textarea id="newchatinvitees" class="chattextarea" rows="1" spellcheck="false" autocomplete="false" autocapitalize="off" autocorrect="off"></textarea>   
+            <textarea id="newchatinvitees" class="chattextarea" rows="1" spellcheck="false" autocomplete="false" autocapitalize="off" autocorrect="off"></textarea>
           </div>
 
           <div id="chatcreatebtndiv" style="width: 100%; float: left;">

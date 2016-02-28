@@ -74,7 +74,7 @@ module.exports = {
     var randomHash = null;
     if("randomhash" in dataHash) {
       randomHash = dataHash.randomhash;
-    
+
       // Start processing the chat
       runChatStart(clientID, sessionID, socket, dataHash, function(err, returnHash) {
 
@@ -103,7 +103,7 @@ module.exports = {
 */
 function processAdminPermissions(adminPermHash) {
 
-  var allOK = true;  
+  var allOK = true;
 
   for(key in adminPermHash) {
     var thisPermHash = adminPermHash[key];
@@ -210,7 +210,9 @@ function queryChatSessionDB(clientID, permHash, callback) {
 
 /*
  * Function to get client statuses from redis e.g. online, busy, offline etc
+ * Have moved to commonchat
  */
+ /*
 function getClientStatus(permHash, callback) {
 
   try {
@@ -246,6 +248,7 @@ function getClientStatus(permHash, callback) {
   }
 
 }
+*/
 
 
 /**
@@ -283,14 +286,14 @@ function runChatStart(clientID, sessionID, socket, dataHash, callback) {
                   _commonchat.grabClientProfiles(sessionID, permHash, function(err, clientProfilesHash) {
                     if(!err) {
                       returnHash["clientprofiles"] = clientProfilesHash;
-                      getClientStatus(permHash, function(err, clientStatusHash) {
+                      _commonchat.getClientStatus(permHash, function(err, clientStatusHash) {
                         // get the client statuses
                         if(!err) {
                           returnHash["clientstatus"] = clientStatusHash;
                         }
                         else {
                           // log an error but proceed anyway
-                          logger.error("Error atttempting to client statuses for chat sessioID: " + chatSessionID);
+                          logger.error("Error atttempting to client statuses for chat sessionID: " + chatSessionID);
                           returnHash["clientstatus"] = {};     // put an empty hash in
                         }
                         callback(false, returnHash);
@@ -332,5 +335,3 @@ function runChatStart(clientID, sessionID, socket, dataHash, callback) {
   });
 
 }
-
-
