@@ -54,10 +54,28 @@ module.exports = {
           adminProfile(sessionID, socket, function(err, returndata) {
             if(!err) {
               processData(sessionID, socket, dataHash);
+              /*
               if("allchatconv" in returndata) {
                 // return the data to the client
                 io.emit("allchatconv", returndata.allchatconv);
               }
+              */
+
+              if("clientid" in returndata) {
+                var clientID = returndata["clientid"];
+
+                /* This is here as a temporary measure until I can figure out where it is meant to go */
+                retrieveAllConversations(clientID, socket, sessionID, function(err, convHash) {
+                  if(!err) {
+                    logger.info("Returning convHash: " + JSON.stringify(convHash) );
+                    io.emit("allchatconv", convHash);
+                    logger.info("Have finished retrieveAllConversations");
+                    returnData["allchatconv"] = convHash;
+                  }
+                });
+
+              }
+
             }
             else {
               // This is an error, need to return some sort of error
@@ -203,6 +221,22 @@ module.exports = {
                   // insert record into db, not sure if we need to do a callback here
                 });
 
+                if("clientid" in returndata) {
+                  var clientID = returndata["clientid"];
+
+                  /* This is here as a temporary measure until I can figure out where it is meant to go */
+                  retrieveAllConversations(clientID, socket, jsessionID, function(err, convHash) {
+                    if(!err) {
+                      logger.info("Returning convHash: " + JSON.stringify(convHash) );
+                      io.emit("allchatconv", convHash);
+                      logger.info("Have finished retrieveAllConversations");
+                      //returnData["allchatconv"] = convHash;
+                    }
+                  });
+
+                }
+
+                /*
                 if("allchatconv" in returndata) {
                   // return the data to the client
                   logger.info("Returning allchatconv data to client")
@@ -211,6 +245,7 @@ module.exports = {
                 else {
                   logger.error("Error, no allchatconv in return data for client");
                 }
+                */
               }
               else {
                 logger.error("Error attempting to retrieve adminProfile");
@@ -404,16 +439,19 @@ function adminProfile(sessionID, socket, callback) {
         var clientID = null;
         if("sTarget_AdminID" in adminJson) {
           clientID = adminJson.sTarget_AdminID;
+          returnData["clientid"] = clientID;
 
           /* This is here as a temporary measure until I can figure out where it is meant to go */
+          /*
           retrieveAllConversations(clientID, socket, sessionID, function(err, convHash) {
             if(!err) {
               logger.info("Returning convHash: " + JSON.stringify(convHash) );
-              io.emit("allchatconv", convHash);
+              //io.emit("allchatconv", convHash);
               logger.info("Have finished retrieveAllConversations");
               returnData["allchatconv"] = convHash;
             }
           });
+          */
 
           // insert the session into the database
           insertDbSessionID(sessionID, clientID, function(err, chatsessionID) {
