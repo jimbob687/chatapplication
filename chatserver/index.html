@@ -311,10 +311,22 @@
       });
 
       socket.on('allchatconv', function(convData) {
+        // ["allchatconv",{"conv":[{"conversationID":45,"clientidsum":58,"created":"2015-12-27T07:35:33.000Z","status":"active","inactive_date":null,"clientIDs":"1,57"},{"conversationID":46,"clientidsum":70,"created":"2016-01-25T15:06:43.000Z","status":"active","inactive_date":null,"clientIDs":"1,69"},{"conversationID":47,"clientidsum":47,"created":"2016-02-15T06:52:02.000Z","status":"active","inactive_date":null,"clientIDs":"1,46"}],"clientprofiles":{},"clientstatus":{"46":{"browser":"offline","mobile":"offline"}}}]
+        console.log("allchatconv has been received");
         // all the chat conversations that have been sent through
-        for(var i = 0; i < convData.length; i++) {
-          console.log("Chat sessions: " + JSON.stringify(convData[i]));
+        if("conv" in convData) {
+          var convHash = convData["conv"];
+          //console.log("conv: " + JSON.stringify(convData["conv"]));
         }
+        if("clientstatus" in convData) {
+          var clientStatusHash = convData["clientstatus"];
+        }
+        if("clientprofiles" in convData) {
+          var clientProfHash = convData["clientprofiles"];
+        }
+        //for(var i = 0; i < convData.length; i++) {
+        //  console.log("Chat sessions: " + JSON.stringify(convData[i]));
+        //}
       });
 
       socket.on('chatcreatefail', function(returnData) {
