@@ -2,10 +2,10 @@
 module.exports = {
 
   setKeepalive: function(clientID, clientType, clientStatus, callback) {
-    /* 
+    /*
      * Function to track keepalive of clients
-     * Add a keepalive to redis, clientType will be: 
-     *    - browser - redis key is "kabr:<clientid>" 
+     * Add a keepalive to redis, clientType will be:
+     *    - browser - redis key is "kabr:<clientid>"
      *    - mobile  - redis key is "kamo:<clientid>"
      * This record will expire after a certain amount of time so we need to get a constant keepalive value coming in
      *
@@ -49,11 +49,11 @@ module.exports = {
         }
       }
       else {
-        logger.error("Error attempting to get the persistent client key from redis for clientID: " + clientID);       
+        logger.error("Error attempting to get the persistent client key from redis for clientID: " + clientID);
       }
     });
 
-    
+
     if(clientStatePersist != null) {
       // set the keepalive key in redis using the persistent state
       _redisclient.set(clientKey, clientStatePersist, function(err, reply) {
@@ -94,6 +94,8 @@ module.exports = {
 
       var returnHash = {};
 
+      returnHash["clientid"] = clientID;
+
       var clientKeyBr = _keepaliveBrowserKey + ":" + clientID;   // status for browser
       var clientMobBr = _keepaliveMobileKey + ":" + clientID;   // status for mobile
 
@@ -118,7 +120,7 @@ module.exports = {
               }
               callback(false, returnHash);
             }
-            else { 
+            else {
               logger.error("Error attempting to get the mobile state of clientID: " + clientID + " from redis");
               returnHash['mobile'] = "unknown";
               callback(false, returnHash);
@@ -126,7 +128,7 @@ module.exports = {
           });
 
         }
-        else { 
+        else {
           logger.error("Error attempting to get the browser state of clientID: " + clientID + " from redis");
           returnHash['browser'] = "unknown";
           finalState = "unknown";
@@ -175,7 +177,7 @@ module.exports = {
           callback(true, null);
         }
       });
-    
+
     }
     catch(e) {
       logger.error("Exception attempting to set profile for clientID: " + clientID + " in redis. " + e);
@@ -207,12 +209,12 @@ module.exports = {
             callback(false, reply.toString());
           }
         }
-        else { 
+        else {
           logger.error("Error attempting to get the profile for clientID: " + clientID + " from redis. Error: " + reply);
           callback(true, null);
         }
       });
-    
+
     }
     catch(e) {
       logger.error("Exception attempting to get status for clientID: " + clientID + " from redis. " + e);
@@ -226,7 +228,7 @@ module.exports = {
 }
 
 
-/* 
+/*
  * Function to set the client state in redis being the persistent key
  */
 function setClientStateRedis(clientID, clientStateKey, clientStatePersist, callback) {
@@ -237,7 +239,7 @@ function setClientStateRedis(clientID, clientStateKey, clientStatePersist, callb
       if(!err) {
         if(persistReply == "OK") {
           _redisclient.expire(clientStateKey, _maxpersiststatustime, function(err, _persistExpireReply) {
-            // set the expiry of the key in redis 
+            // set the expiry of the key in redis
             if(err) {
               logger.error("Error attempting set the expire time for the persistent client state for clientID: " + clientID);
             }
@@ -339,19 +341,19 @@ function fetchClientStateDB(clientID, clientStateKey, callback) {
               logger.error("Error attempting to add persistent client state to redis for clientID: " + clientID);
             }
             else {
-              callback(false, clientStatePersist); 
+              callback(false, clientStatePersist);
             }
           });
         }
         else {
-          logger.error("Error, unable to determine persistent client status for clientID: " + clientID + " to place into redis"); 
+          logger.error("Error, unable to determine persistent client status for clientID: " + clientID + " to place into redis");
           callback(true, null);
         }
       }
       else {
         logger.error("Error attempting to query persistent client state from db for clientID: " + clientID);
         callback(true, null);
-      } 
+      }
     });
 
   }
@@ -399,4 +401,3 @@ function getRandomTime(expireTime) {
   }
 
 }
-

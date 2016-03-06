@@ -215,15 +215,18 @@ module.exports = {
         }
         else {
           if(jsessionID != null) {
+            logger.info("About to call adminProfile");
             adminProfile(jsessionID, socket, function(err, returndata) {
+
               if(!err) {
+                logger.info("Admin JSON returned: " + JSON.stringify(returndata));
                 _redismethods.setKeepalive(clientID, clientType, clientStatus, function(err, returnData) {
                   // insert record into db, not sure if we need to do a callback here
                 });
 
                 if("clientid" in returndata) {
                   var clientID = returndata["clientid"];
-
+                  logger.info("About to query retrieveAllConversations");
                   /* This is here as a temporary measure until I can figure out where it is meant to go */
                   retrieveAllConversations(clientID, socket, jsessionID, function(err, convHash) {
                     if(!err) {
@@ -234,6 +237,9 @@ module.exports = {
                     }
                   });
 
+                }
+                else {
+                  logger.error("clientID not in returndata");
                 }
 
                 /*
@@ -414,6 +420,7 @@ function remoteSocketClientHash(sessionID, clientID) {
  * Get the admin profile information
  * sessionID - is the JSESSIONID that we are making the query for
  * socket - is the socket that the request came in on, if is null then sessionID didn't come in on a socket
+ * allConv - boolean if we should also get all conversations
 */
 function adminProfile(sessionID, socket, callback) {
 
@@ -428,43 +435,39 @@ function adminProfile(sessionID, socket, callback) {
     if (!err) {
       if(profileJson == null) {
         logger.error("Error, profileJson is null");
+        callback(true, null);
       }
       else {
         var adminJson = {};
         if("profile" in profileJson) {
           // get the profile in the Json
           adminJson = profileJson.profile;
-          logger.debug("adminJson: " + JSON.stringify(adminJson));
+          logger.debug("queryProfileAPI returned adminJson: " + JSON.stringify(adminJson));
         }
         var clientID = null;
         if("sTarget_AdminID" in adminJson) {
           clientID = adminJson.sTarget_AdminID;
           returnData["clientid"] = clientID;
 
-          /* This is here as a temporary measure until I can figure out where it is meant to go */
-          /*
-          retrieveAllConversations(clientID, socket, sessionID, function(err, convHash) {
-            if(!err) {
-              logger.info("Returning convHash: " + JSON.stringify(convHash) );
-              //io.emit("allchatconv", convHash);
-              logger.info("Have finished retrieveAllConversations");
-              returnData["allchatconv"] = convHash;
-            }
-          });
-          */
+          // Array to hold async tasks
+          //var asyncTasks = [];
 
           // insert the session into the database
-          insertDbSessionID(sessionID, clientID, function(err, chatsessionID) {
+          insertDbSessionID(sessionID, clientID, socket); //{
+
+          callback(false, returnData);
+            /*
             if(!err) {
               logger.debug("Need to update hash for chatsessionID: " + chatsessionID + " and clientID: " + clientID);
 
               if(clientID !== null) {
                 // add the sessionID to the hash
-                socketSessionHash[sessionID] = clientID;
+                //socketSessionHash[sessionID] = clientID;
 
                 if(socket != null) {
-                  socket.clientid = clientID;   // Set the clientID on the socket
-                  socket.chatsessionid = chatsessionID;
+                  */
+                  //socket.clientid = clientID;   // Set the clientID on the socket
+                  //socket.chatsessionid = chatsessionID;
                   /*
                   socketconn.addSessionToHash(sessionID, socket, clientID, function(err, addHashData) {
                     if(!err) {
@@ -476,18 +479,19 @@ function adminProfile(sessionID, socket, callback) {
                   });
                   */
 
-                  var addSuccess = addSocketClientHash(sessionID, socket, clientID);
-
+                  //var addSuccess = addSocketClientHash(sessionID, socket, clientID);
+             /*
                   if(!addSuccess) {
                     logger.error("Error attempting to update socketClientHash for clientID: " + clientID);
+                    callback(true, null);   // return that failed
                   }
 
                 }
                 else {
-                  logger.error("Error, socket is null");
+                  logger.error("Error, socket is null for clientID: " + clientID);
+                  callback(true, null);   // return that failed
                 }
 
-                callback(false, returnData);   // return that everything went ok
               }
               else {
                 callback(true, null);   // return that failed
@@ -497,7 +501,8 @@ function adminProfile(sessionID, socket, callback) {
               logger.error("Error attempting to insert chat session into db");
               callback(true, null);
             }
-          });
+            */
+          //});
         }
         else {
           logger.error("clientID not found in adminJson");
@@ -523,18 +528,24 @@ function adminProfile(sessionID, socket, callback) {
 
 
 /*
- * Function to insert a sessionID into the database
+ * Function to insert a sessionID into the database and update the hash and socket with the session details
  */
-function insertDbSessionID(sessionID, clientID, callback) {
+function insertDbSessionID(sessionID, clientID, socket) {
 
   _dbmethods.insertChatSession(sessionID, clientID, function(err, chatsessionID) {
     if(!err) {
       logger.debug("Have inserted into db chatsessionID: " + chatsessionID);
-      callback(false, chatsessionID);
+      socketSessionHash[sessionID] = clientID;
+      if(socket != null) {
+        socket.clientid = clientID;   // Set the clientID on the socket
+        socket.chatsessionid = chatsessionID;
+      }
+      var addSuccess = addSocketClientHash(sessionID, socket, clientID);
+      //callback(false, chatsessionID);
     }
     else {
       logger.error("Error attempting to insert sessionID into db for clientID: " + clientID);
-      callback(true, null);
+      //callback(true, null);
     }
   });
 
@@ -619,6 +630,9 @@ function retrieveAllConversations(clientID, socket, sessionID, callback) {
         var returnHash = {};
         var convArray = []
         var clientIDArray = [];     // Array of client profiles that we need
+
+        var asyncTasks = [];
+
         if(convRows != null) {
           var convRowLen = convRows.length;
           for (var i = 0; i < convRowLen; i++) {
@@ -644,8 +658,8 @@ function retrieveAllConversations(clientID, socket, sessionID, callback) {
         }
 
         // get all the profiles for the clients
-        logger.info("About to grab profiles for clientIDs: " + JSON.stringify(clientIDArray));
-        _commonchat.grabClientProfiles(sessionID, clientIDArray, function(err, clientProfilesHash) {
+        logger.info("-------------About to grab profiles for clientIDs: " + JSON.stringify(clientIDArray));
+        _commonchat.getClientProfiles(sessionID, clientIDArray, function(err, clientProfilesHash) {
           if(!err) {
             logger.info("clientProfilesHash: " + JSON.stringify(clientProfilesHash));
             returnHash["clientprofiles"] = clientProfilesHash;
@@ -656,14 +670,14 @@ function retrieveAllConversations(clientID, socket, sessionID, callback) {
               }
               else {
                 // log an error but proceed anyway
-                logger.error("Error atttempting to client statuses for chat sessioID: " + chatSessionID);
+                //logger.error("Error atttempting to client statuses for chat sessioID: " + chatSessionID);
                 returnHash["clientstatus"] = {};     // put an empty hash in
               }
               callback(false, returnHash);
             });
           }
           else {
-            logger.error("Error attempting to start chat when querying client profiles");
+            logger.error("Error attempting to query client profiles");
             callback(true, null);
           }
 

@@ -18,6 +18,7 @@ module.exports = {
       request.debug = true;
     }
 
+
     var formData = {form:{ targetclientid: targetClientID }}
 
     var j = request.jar();
@@ -27,7 +28,7 @@ module.exports = {
     j.setCookie(cookie, cookieHostName);
     if(requestConfig.verbose == true) {
       logger.info("_apiServerHostName: " + _apiServerHostName);
-      logger.info("Cookie JAR: " + j.getCookieString(_apiServerHostName));
+      //logger.info("Cookie JAR: " + j.getCookieString(_apiServerHostName));
     }
 
     request( { method: 'POST', url: serverURL, form: formData, jar: j }, function (error, response, body) {

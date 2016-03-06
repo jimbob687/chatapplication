@@ -140,9 +140,10 @@ module.exports = {
   },
 
 
-  // Iterate an array of clientIDs and return the profiles for each
+  /*
+  This is now deprecated, can't find it being used anywhere in the code
   grabClientProfilesArray: function(sessionID, clientIDarray, callback) {
-
+    // Iterate an array of clientIDs and return the profiles for each
     try {
       var clientProfilesHash = {};
       var recordsReturned = 0;
@@ -165,13 +166,16 @@ module.exports = {
     }
 
   },
+  */
 
 
   // Function to get client profiles
-  grabClientProfiles: function(sessionID, clientIDArray, callback) {
+  getClientProfiles: function(sessionID, clientIDArray, callback) {
 
     try {
 
+      logger.debug("In grabClientProfiles");
+      /*
       var clientProfilesHash = {};
       var elementsFound = 1;   // number of keys that have been processed
       //var permHashLen = Object.keys(permHash).length;    // get length of permHash
@@ -199,6 +203,16 @@ module.exports = {
           }
         });
       }
+      */
+      grabClientProfiles(clientIDArray, sessionID, function(err, returnStatusData) {
+        if(!err) {
+          logger.info("returnProfileData: " + JSON.stringify(returnStatusData));
+          callback(err, returnStatusData);
+        }
+        else {
+          callback(err, null);
+        }
+      });
 
     }
     catch(e) {
@@ -209,42 +223,29 @@ module.exports = {
   },
 
 
-
   getClientStatus: function(clientIDArray, callback) {
-    /*
-     * Function to get client statuses from redis e.g. online, busy, offline etc
-     */
 
+    //  Function to get client statuses from redis e.g. online, busy, offline etc
     try {
       logger.debug("In getClientStatus");
 
-      var clientStatusHash = {};
-      var elementsFound = 1;   // number of keys that have been processed
+      //var clientStatusHash = {};
+      //var elementsFound = 1;   // number of keys that have been processed
       //var permHashLen = Object.keys(permHash).length;    // get length of permHash
 
-      // fetchClientStatus: function(clientID, callback)
-      for(var i = 0; i < clientIDArray.length; i++) {
-        var targetClientID = clientIDArray[i];
-        logger.debug("Getting status for clientID: " + targetClientID);
-        _redismethods.fetchClientStatus(targetClientID, function(err, clientStatus) {
-          elementsFound++;   // increment the number of object processed
-          if(!err) {
-            logger.debug("Adding status of " + JSON.stringify(clientStatus) + " for clientID: " + targetClientID);
-            clientStatusHash[targetClientID] = clientStatus;
-          }
-          else {
-            logger.error("Error, unable to get client status for clientID: " + targetClientID);
-          }
-          if(elementsFound >= clientIDArray.length) {
-            // we have processed all the keys so return the hash
-            callback(false, clientStatusHash);
-          }
-        });
-      }
+      grabClientStatuses(clientIDArray, function(err, returnStatusData) {
+        if(!err) {
+          logger.info("returnStatusData: " + JSON.stringify(returnStatusData));
+          callback(err, returnStatusData);
+        }
+        else {
+          callback(err, null);
+        }
+      });
 
     }
     catch(e) {
-      logger.error("Exception attempting to get client statuses " + e);
+      logger.error("Exception attempting to get client statuses " + e +  " Exception: " + e.stack);
       callback(true, null);
     }
 
@@ -253,6 +254,121 @@ module.exports = {
 }
 
 
+function grabClientStatuses(clientIDArray, callback) {
+
+  var asyncTasks = [];
+
+  clientIDArray.forEach( function(targetClientID, index) {
+    logger.debug("Need status for clientID:" + targetClientID);
+    asyncTasks.push(
+      function(callback){
+        _redismethods.fetchClientStatus(targetClientID, function(err, clientStatus) {
+          //elementsFound++;   // increment the number of object processed
+          if(!err) {
+            logger.debug("Adding status of " + JSON.stringify(clientStatus) + " for clientID: " + targetClientID);
+            //clientStatusHash[targetClientID] = clientStatus;
+            callback(false, clientStatus);
+          }
+          else {
+            logger.error("Error, unable to get client status for clientID: " + targetClientID);
+            callback(true, null);
+          }
+
+        });
+      }
+    )
+  });
+
+  _async.parallel(asyncTasks, function(err, resultData) {
+    // All tasks are done now
+    //doSomethingOnceAllAreDone();
+    logger.info("Have a result for client status of: " + JSON.stringify(resultData));
+    callback(err, resultData);
+  });
+
+}
+
+
+function grabClientProfiles(clientIDArray, sessionID, callback) {
+
+  var asyncTasks = [];
+
+  clientIDArray.forEach( function(targetClientID, index) {
+    logger.debug("Need profile for clientID:" + targetClientID);
+    asyncTasks.push(
+      function(callback){
+
+        _redismethods.fetchClientProfile(targetClientID, function(err, profileJson) {
+          if(!err) {
+            if(profileJson == null) {
+              // nothing in redis so need to call the api
+              _profileapi.queryClientProfileAPI(sessionID, targetClientID, function(err, profileJson) {
+                if(!err) {
+                  if(profileJson == null) {
+                    // we have a problem at this point
+                    callback(true, null);
+                  }
+                  else {
+                    // let's add it to redis
+                    _redismethods.addClientProfile(targetClientID, profileJson, function(err, redisReply) {
+                      if(err) {
+                        logger.error("Error, unable to add profile to redis for clientID: " + targetClientID);
+                      }
+                      callback(false, profileJson);
+                    });
+                  }
+                }
+                else {
+                  logger.error("Error attempting to get profile for clientID: " + targetClientID + " from API");
+                  callback(true, null);
+                }
+              });
+            }
+            else {
+              logger.debug("client profileJson: " + JSON.stringify(profileJson));
+              // profile has been taken from redis, so return it
+              callback(false, profileJson);
+            }
+          }
+          else {
+            logger.error("Error attempting to fetch profile from redis for clientID: " + clientID);
+            callback(true, null);
+          }
+        });
+
+        /*
+        //_profileapi.queryClientProfile(targetClientID, sessionID, function(err, clientProfile) {
+        queryClientProfile(targetClientID, sessionID, function(err, clientProfile) {
+          elementsFound++;   // increment the number of object processed
+          // let's get the client profile, first from redis, and api if not in redis
+          if(!err) {
+            callback(false, clientProfile);
+          }
+          else {
+            logger.error("Error, unable to get client profile for clientID: " + targetClientID);
+            callack(true, null);
+          }
+        });
+        */
+
+      }
+    )
+  });
+
+  _async.parallel(asyncTasks, function(err, resultData) {
+    // All tasks are done now
+    //doSomethingOnceAllAreDone();
+    logger.info("Have a result for client profiles of: " + JSON.stringify(resultData));
+    callback(err, resultData);
+  });
+
+}
+
+
+/*
+ * Has been deprecated to be replaced with an async module
+ */
+ /*
 function grabClientProfile(sessionID, targetClientID, callback) {
 
   try {
@@ -277,6 +393,7 @@ function grabClientProfile(sessionID, targetClientID, callback) {
   }
 
 }
+*/
 
 
 /*

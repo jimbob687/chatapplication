@@ -13,7 +13,7 @@ var crypto = require('crypto');
 
 var moment = require('moment');
 
-var asynclib = require('async');
+global._async = require('async');
 
 //var emitter = require('events');
 //emitter.setMaxListeners(100);
