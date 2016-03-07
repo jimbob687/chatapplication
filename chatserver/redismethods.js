@@ -153,11 +153,12 @@ module.exports = {
      */
 
     try {
-      logger.debug("About to add client JSON to redis: " + profileJson);
+      logger.debug("About to add object type: " + _Type(profileJson) + " for clientID: " + clientID + " of type: " + _Type(clientID) + " client JSON to redis: " + profileJson);
 
       var clientProfKey = _clientProfileKey + ":" + clientID;   // key for a client profile in redis
 
       // set the keepalive key in redis using the persistent state
+      //_redisclient.set(clientProfKey, JSON.stringify(profileJson), function(err, reply) {
       _redisclient.set(clientProfKey, profileJson, function(err, reply) {
         if(!err) {
           logger.debug("Reply from redis: " + reply);
@@ -206,7 +207,10 @@ module.exports = {
             callback(false, null);
           }
           else {
-            callback(false, reply.toString());
+            //var thisProf = JSON.parse(reply);
+            logger.info("Data returned: " + _Type(reply) + " profile JSON: " + reply);
+            callback(false, reply);
+            //callback(false, JSON.parse(reply).toString());
           }
         }
         else {

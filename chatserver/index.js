@@ -15,6 +15,8 @@ var moment = require('moment');
 
 global._async = require('async');
 
+global._Type = require('type-of-is');
+
 //var emitter = require('events');
 //emitter.setMaxListeners(100);
 
@@ -230,6 +232,11 @@ if("authpath" in apiServerConfig) {
 global._profilePathApi;
 if("profilepath" in apiServerConfig) {
   _profilePathApi = apiServerConfig.profilepath;
+}
+global._profileOtherPathApi;
+if("profileotherpath" in apiServerConfig) {
+  // Path for the profile of a client that isn't for the client that we are calling on behalf of
+  _profileOtherPathApi = apiServerConfig.profileotherpath;
 }
 global._inviteCheckPathApi;
 if("invitecheck" in apiServerConfig) {

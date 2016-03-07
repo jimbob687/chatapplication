@@ -19,7 +19,7 @@ module.exports = {
     }
 
 
-    var formData = {form:{ targetclientid: targetClientID }}
+    var formData = {form:{ targetclientid: targetClientID }};
 
     var j = request.jar();
     var cookieVal = "JSESSIONID=" + jsessionID;

@@ -27,6 +27,7 @@
     "protocol": "https",
     "authpath": "/auth/AdminApiAuth.do",
     "profilepath": "/admin/AdminChatProfile.do",
+    "profileotherpath": "/admin/AdminDetailsSelect.do",
     "invitecheck": "/admin/AdminChatInviteCheck.do",
     "clientsearchpath": "/admin/AdminSelect.do"
   },

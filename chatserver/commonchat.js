@@ -174,40 +174,12 @@ module.exports = {
 
     try {
 
-      logger.debug("In grabClientProfiles");
-      /*
-      var clientProfilesHash = {};
-      var elementsFound = 1;   // number of keys that have been processed
-      //var permHashLen = Object.keys(permHash).length;    // get length of permHash
+      logger.debug("In getClientProfiles");
 
-      logger.info("clientIDArray: " + JSON.stringify(clientIDArray));
-
-      // iterate the client hash
-      for(var i = 0; i < clientIDArray.length; i++) {
-        targetClientID = clientIDArray[i];
-        logger.debug("About to get profile for clientID: " + targetClientID);
-        _profileapi.queryClientProfileAPI(targetClientID, sessionID, function(err, clientProfile) {
-          elementsFound++;   // increment the number of object processed
-          // let's get the client profile, first from redis, and api if not in redis
-          if(!err) {
-            clientProfilesHash[targetClientID] = JSON.parse(clientProfile);
-            logger.debug("Client profile: " + clientProfile);
-          }
-          else {
-            logger.error("Error, unable to get client profile for clientID: " + targetClientID);
-          }
-          if(elementsFound >= clientIDArray.length) {
-            logger.info("----Returning profiles------------");
-            // we have processed all the keys
-            callback(false, clientProfilesHash);
-          }
-        });
-      }
-      */
-      grabClientProfiles(clientIDArray, sessionID, function(err, returnStatusData) {
+      grabClientProfiles(clientIDArray, sessionID, function(err, returnProfileData) {
         if(!err) {
-          logger.info("returnProfileData: " + JSON.stringify(returnStatusData));
-          callback(err, returnStatusData);
+          logger.info("returnProfileData: " + returnProfileData);
+          callback(err, returnProfileData);
         }
         else {
           callback(err, null);
@@ -265,7 +237,7 @@ function grabClientStatuses(clientIDArray, callback) {
         _redismethods.fetchClientStatus(targetClientID, function(err, clientStatus) {
           //elementsFound++;   // increment the number of object processed
           if(!err) {
-            logger.debug("Adding status of " + JSON.stringify(clientStatus) + " for clientID: " + targetClientID);
+            logger.debug("Async returned clientStatus of " + JSON.stringify(clientStatus) + " for clientID: " + targetClientID);
             //clientStatusHash[targetClientID] = clientStatus;
             callback(false, clientStatus);
           }
@@ -311,10 +283,15 @@ function grabClientProfiles(clientIDArray, sessionID, callback) {
                   else {
                     // let's add it to redis
                     _redismethods.addClientProfile(targetClientID, profileJson, function(err, redisReply) {
-                      if(err) {
-                        logger.error("Error, unable to add profile to redis for clientID: " + targetClientID);
+                      if(!err) {
+                        logger.info("Async returned clientProfile of type: " + _Type(redisReply) + " and data: " + redisReply);
+                        callback(false, JSON.parse(profileJson));
                       }
-                      callback(false, profileJson);
+                      else {
+                        logger.error("Error, unable to add profile to redis for clientID: " + targetClientID);
+                        callback(false, null);
+                      }
+
                     });
                   }
                 }
@@ -325,7 +302,7 @@ function grabClientProfiles(clientIDArray, sessionID, callback) {
               });
             }
             else {
-              logger.debug("client profileJson: " + JSON.stringify(profileJson));
+              logger.debug("client profileJson: " + profileJson);
               // profile has been taken from redis, so return it
               callback(false, profileJson);
             }

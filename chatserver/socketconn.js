@@ -661,11 +661,12 @@ function retrieveAllConversations(clientID, socket, sessionID, callback) {
         logger.info("-------------About to grab profiles for clientIDs: " + JSON.stringify(clientIDArray));
         _commonchat.getClientProfiles(sessionID, clientIDArray, function(err, clientProfilesHash) {
           if(!err) {
-            logger.info("clientProfilesHash: " + JSON.stringify(clientProfilesHash));
+            logger.info("clientProfilesHash type: " + _Type(clientProfilesHash) + " and data: " + clientProfilesHash);
             returnHash["clientprofiles"] = clientProfilesHash;
             _commonchat.getClientStatus(clientIDArray, function(err, clientStatusHash) {
               // get the client statuses
               if(!err) {
+                logger.info("clientStatusHash of type: " + _Type(clientStatusHash) + " and data: " + clientStatusHash);
                 returnHash["clientstatus"] = clientStatusHash;
               }
               else {
