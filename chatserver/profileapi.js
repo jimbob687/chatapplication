@@ -18,8 +18,10 @@ module.exports = {
       request.debug = true;
     }
 
+    logger.info("Retrieving client profile for clientID: " + targetClientID);
 
-    var formData = {form:{ targetclientid: targetClientID }};
+    //var formData = {form:{ "targetclientid": targetClientID }};
+    var formData = { "targetclientid": targetClientID };
 
     var j = request.jar();
     var cookieVal = "JSESSIONID=" + jsessionID;

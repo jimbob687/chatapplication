@@ -33,7 +33,7 @@
   },
 
   "request": {
-    "verbose": false
+    "verbose": true
   },
 
   "session": {

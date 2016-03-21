@@ -94,7 +94,7 @@ module.exports = {
 
     try {
 
-      _redismethods.fetchClientProfile(targetClientID, function(err, profileJson) {
+      _redismethods.fetchClientProfile(targetClientID, sessionID, function(err, profileJson) {
         if(!err) {
           if(profileJson == null) {
             // nothing in redis so need to call the api
@@ -270,9 +270,12 @@ function grabClientProfiles(clientIDArray, sessionID, callback) {
     asyncTasks.push(
       function(callback){
 
-        _redismethods.fetchClientProfile(targetClientID, function(err, profileJson) {
+        _redismethods.fetchClientProfile(targetClientID, sessionID, function(err, profileJson) {
           if(!err) {
             if(profileJson == null) {
+              callback(true, null);
+
+              /*
               // nothing in redis so need to call the api
               _profileapi.queryClientProfileAPI(sessionID, targetClientID, function(err, profileJson) {
                 if(!err) {
@@ -294,12 +297,14 @@ function grabClientProfiles(clientIDArray, sessionID, callback) {
 
                     });
                   }
+
                 }
                 else {
                   logger.error("Error attempting to get profile for clientID: " + targetClientID + " from API");
                   callback(true, null);
                 }
               });
+              */
             }
             else {
               logger.debug("client profileJson: " + profileJson);
@@ -308,7 +313,7 @@ function grabClientProfiles(clientIDArray, sessionID, callback) {
             }
           }
           else {
-            logger.error("Error attempting to fetch profile from redis for clientID: " + clientID);
+            logger.error("Error attempting to fetch profile from redis for clientID: " + targetClientID);
             callback(true, null);
           }
         });

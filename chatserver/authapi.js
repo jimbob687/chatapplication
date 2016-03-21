@@ -56,23 +56,32 @@ module.exports = {
 
 
     request( { method: 'POST', url: serverURL, jar: j }, function (error, response, body) {
-      if (!error && response.statusCode == 200) {
-        if(requestConfig.verbose == true) {
-          logger.debug(body) // Print the response
+
+      try {
+
+        if (!error && response.statusCode == 200) {
+          if(requestConfig.verbose == true) {
+            logger.debug(body) // Print the response
+          }
+          callback(false, JSON.parse(body));
         }
-        callback(false, JSON.parse(body));
+        else if( response.statusCode == 302) {
+          if(requestConfig.verbose == true) {
+            logger.debug("Redirect has been generated, need to log user in");
+          }
+          callback(true, { "authenticated" : false, "statuscode": response.statusCode });
+        }
+        else {
+          if(requestConfig.verbose == true) {
+            logger.error("Error making request: " + body);
+          }
+          callback(true, JSON.parse(body));
+        }
+
       }
-      else if( response.statusCode == 302) {
-        if(requestConfig.verbose == true) {
-          logger.debug("Redirect has been generated, need to log user in");
-        }
-        callback(true, { "authenticated" : false, "statuscode": response.statusCode });
-      }
-      else {
-        if(requestConfig.verbose == true) {
-          logger.error("Error making request: " + body);
-        }
-        callback(true, JSON.parse(body));
+      catch(e) {
+        logger.error("Exception attempting request to queryProfileAPI: " + e);
+        callback(true, null);
       }
     })
   }

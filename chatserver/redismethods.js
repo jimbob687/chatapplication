@@ -188,7 +188,7 @@ module.exports = {
   },
 
 
-  fetchClientProfile: function(clientID, callback) {
+  fetchClientProfile: function(clientID, sessionID, callback) {
     /*
      * Get a client's profile from redis. If it doesn't exist then return null.
      */
@@ -204,7 +204,36 @@ module.exports = {
         if(!err) {
           // send back response, will be null if key doesn't exist
           if(reply == null) {
-            callback(false, null);
+
+            // nothing in redis so need to call the api
+            _profileapi.queryClientProfileAPI(sessionID, clientID, function(err, profileJson) {
+              if(!err) {
+                if(profileJson == null) {
+                  // we have a problem at this point
+                  callback(true, null);
+                }
+                else {
+                  // let's add it to redis
+                  _redismethods.addClientProfile(clientID, profileJson, function(err, redisReply) {
+                    if(!err) {
+                      logger.info("Async returned clientProfile of type: " + _Type(redisReply) + " and data: " + redisReply);
+                      callback(false, JSON.parse(profileJson));
+                    }
+                    else {
+                      logger.error("Error, unable to add profile to redis for clientID: " + clientID);
+                      callback(false, null);
+                    }
+
+                  });
+                }
+              }
+              else {
+                logger.error("Error attempting to get profile for clientID: " + clientID + " from API");
+                callback(true, null);
+              }
+            });
+
+            //callback(false, null);
           }
           else {
             //var thisProf = JSON.parse(reply);
