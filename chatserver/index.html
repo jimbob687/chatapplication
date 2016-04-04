@@ -201,10 +201,82 @@
 
   <script src="js/jquery-ui-1.11.4.min.js"></script>
 
+  <script src="https://fb.me/react-0.14.8.js"></script>
+  <script src="https://fb.me/react-dom-0.14.8.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.23/browser.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/0.3.5/marked.min.js"></script>
+
   <!-- Taken from https://github.com/ro31337/jquery.ns-autogrow -->
   <!--<script src="js/jquery.ns-autogrow.min.js"></script>-->
 
+
+  <script type="text/babel">
+
+    console.log("About to do react stuff")
+  
+    // tutorial4.js
+    var Comment = React.createClass({
+      render: function() {
+        return (
+          <div className="comment">
+            <h2 className="commentAuthor">
+              {this.props.author}
+            </h2>
+            {this.props.children}
+          </div>
+        );
+      }
+    });
+
+    // tutorial2.js
+    var CommentList = React.createClass({
+      render: function() {
+        return (
+          <div className="commentList">
+            <Comment author="Pete Hunt">This is one comment</Comment>
+            <Comment author="Jordan Walke">This is *another* comment</Comment>
+          </div>
+        );
+      }
+    });
+    
+    var CommentForm = React.createClass({
+      render: function() {
+        return (
+          <div className="commentForm">
+            Hello, world! I am a CommentForm.
+          </div>
+        );
+      }
+    });
+  
+    // tutorial1.js
+    var CommentBox = React.createClass({
+      render: function() {
+        return (
+          <div className="commentBox">
+            <h1>Comments</h1>
+            <CommentList />
+            <CommentForm />
+          </div>
+        );
+      }
+    });
+    ReactDOM.render(
+      <CommentBox />,
+      document.getElementById('content')
+    );
+
+  </script>
+  
+
   <script>
+
+    var _clientID = null;
+    var _clientStatusHash = new Object();
+    var _clientProfileHash = new Object();
+
 
     // function to get a cookie
     function GetCookie(cookieName) {
@@ -294,6 +366,11 @@
         $('#messages').append($('<li>').text(msg));
       });
 
+      socket.on('clientid', function(clientIDdata){
+        // set the clientID
+        _clientID = clientIDdata;
+      });
+
       var pendingAutoComplete = {};
       socket.on('clientautocomplete', function(returnData){
         console.log("autocomplete return: " + JSON.stringify(returnData));
@@ -313,7 +390,9 @@
       socket.on('allchatconv', function(convData) {
         // ["allchatconv",{"conv":[{"conversationID":45,"clientidsum":58,"created":"2015-12-27T07:35:33.000Z","status":"active","inactive_date":null,"clientIDs":"1,57"},{"conversationID":46,"clientidsum":70,"created":"2016-01-25T15:06:43.000Z","status":"active","inactive_date":null,"clientIDs":"1,69"},{"conversationID":47,"clientidsum":47,"created":"2016-02-15T06:52:02.000Z","status":"active","inactive_date":null,"clientIDs":"1,46"}],"clientprofiles":{},"clientstatus":{"46":{"browser":"offline","mobile":"offline"}}}]
         console.log("allchatconv has been received");
+        processAllChatConv(convData);
         // all the chat conversations that have been sent through
+        /*
         if("conv" in convData) {
           var convHash = convData["conv"];
           //console.log("conv: " + JSON.stringify(convData["conv"]));
@@ -324,10 +403,67 @@
         if("clientprofiles" in convData) {
           var clientProfHash = convData["clientprofiles"];
         }
-        //for(var i = 0; i < convData.length; i++) {
-        //  console.log("Chat sessions: " + JSON.stringify(convData[i]));
-        //}
+        */
       });
+
+
+      function processAllChatConv(convData) {
+
+        var convArray = [];
+
+        if("conv" in convData) {
+          convArray = convData.conv;
+        }
+
+        if("clientprofiles" in convData) {
+          var thisClientProfArray = convData.clientprofiles;
+          console.log(thisClientProfArray);
+          for(var i = 0; i < thisClientProfArray.length; i++) {
+            var thisClientProfHash = JSON.parse(thisClientProfArray[i]);
+            console.log(thisClientProfHash);
+            if("profile" in thisClientProfHash) {
+              var thisInnerProfileHash = thisClientProfHash.profile;
+              if("sTarget_AdminID" in thisInnerProfileHash) {
+                var thisTargeAdminID = thisInnerProfileHash.sTarget_AdminID;
+                _clientProfileHash[thisTargeAdminID] = thisInnerProfileHash;
+              }
+            }
+          }           
+        }
+
+        if("clientstatus" in convData) {
+          var clientStatusArray = convData.clientstatus;
+          for(var i = 0; i < clientStatusArray.length; i++) {
+            console.log(clientStatusArray[i]);
+            var thisClientStatusHash = clientStatusArray[i];
+            console.log(thisClientStatusHash);
+            var thisClientID = null;
+            if("clientid" in thisClientStatusHash) {
+              // let's load up the global status hash
+              _clientStatusHash[thisClientStatusHash.clientID] = thisClientStatusHash;
+            }
+          }
+        }
+
+        for(var i = 0; i < convArray.length; i++) {
+          var convHash = convArray[i];
+          console.log(convArray[i]);
+          var conversationID = null;
+          if("conversationID" in convHash) {
+            conversationID = convHash.conversationID;
+          }
+          if("clientIDs" in convHash) {
+            var clientIDs = convHash.clientIDs;
+            var clientIDarray = clientIDs.split(",");
+            for(clientID in clientIDarray) {
+              if(clientID != _clientID) {
+                // the clientID doesn't belong to the client so is the other participant in the conv
+              }
+            }
+          }
+        }
+
+      }
 
       socket.on('chatcreatefail', function(returnData) {
         console.log("Unable to start chat due to permission issues");
@@ -665,8 +801,12 @@
 
     }
 
-
   </script>
+
+
+
+
+
   <body>
 
     <!-- To keep information about rooms that the user is in -->
@@ -813,6 +953,9 @@
         <input id="m" autocomplete="off" /><button id="submitbtn">Send</button>
       </div>
     </div>
+
+    <div id="content"></div>
+
 
   </body>
 </html>

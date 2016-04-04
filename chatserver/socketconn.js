@@ -226,6 +226,7 @@ module.exports = {
 
                 if("clientid" in returndata) {
                   var clientID = returndata["clientid"];
+                  io.emit("clientid", clientID);   // send back the clientID
                   logger.info("About to query retrieveAllConversations");
                   /* This is here as a temporary measure until I can figure out where it is meant to go */
                   retrieveAllConversations(clientID, socket, jsessionID, function(err, convHash) {
