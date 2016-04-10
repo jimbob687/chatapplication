@@ -754,6 +754,7 @@ app.get('/', function(req, res){
   res.sendFile(path.join(__dirname + '/index.html'));
 });
 
+
 // This is for authentication
 app.post("/login", function(req, res) {
   //logger.debug("Have received a login request." + JSON.stringify(req.body));

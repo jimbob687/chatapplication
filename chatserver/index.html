@@ -140,45 +140,45 @@
 	/*max-height: 14px;*/
 	float: relative;
 	font-size: 12px;
-      }
+  }
 
-      .tannfeemailaddrremove {
-	display: inline;
-	height: 100%;
-	width: 20px;
-	float: left;
-	background-color: #f5f5f5;
-	border-radius: 3px;
-	padding-left: 5px;
-      }
+  .tannfeemailaddrremove {
+	   display: inline;
+	   height: 100%;
+	   width: 20px;
+	   float: left;
+	   background-color: #f5f5f5;
+	   border-radius: 3px;
+	   padding-left: 5px;
+  }
 
-      .tannfeemailaddrrx {
-	font-size: 10px;
-	opacity: 0.7;
-      }
+  .tannfeemailaddrrx {
+	   font-size: 10px;
+	    opacity: 0.7;
+  }
 
-      .tannfeemailaddrrx:hover {
-	cursor: pointer;
-	cursor: hand;
-      }
+  .tannfeemailaddrrx:hover {
+	   cursor: pointer;
+	    cursor: hand;
+  }
 
-      .chatcreateboxdiv {
-        width: 100%;
-        float: left;
-        display: none;
-        border-width: 1px;
-        border-style: solid;
-        border-radius: 2px;
-        padding: 2px;
-      }
+  .chatcreateboxdiv {
+      width: 100%;
+      float: left;
+      display: none;
+      border-width: 1px;
+      border-style: solid;
+      border-radius: 2px;
+      padding: 2px;
+    }
 
-      .chatcreatebtn {
-        position: relative;
-        margin-top: 10px;
-        margin-bottom: 10px;
-        float: right;
-        margin-right: 0;
-      }
+    .chatcreatebtn {
+      position: relative;
+      margin-top: 10px;
+      margin-bottom: 10px;
+      float: right;
+      margin-right: 0;
+    }
 
     </style>
   </head>
@@ -211,10 +211,12 @@
   <!--<script src="js/jquery.ns-autogrow.min.js"></script>-->
 
 
+
   <script type="text/babel">
 
+
     console.log("About to do react stuff")
-  
+
     // tutorial4.js
     var Comment = React.createClass({
       render: function() {
@@ -240,7 +242,7 @@
         );
       }
     });
-    
+
     var CommentForm = React.createClass({
       render: function() {
         return (
@@ -250,9 +252,9 @@
         );
       }
     });
-  
+
     // tutorial1.js
-    var CommentBox = React.createClass({
+    window.CommentBox = React.createClass({
       render: function() {
         return (
           <div className="commentBox">
@@ -263,15 +265,21 @@
         );
       }
     });
+
+    /*
     ReactDOM.render(
       <CommentBox />,
       document.getElementById('content')
     );
+    */
 
-  </script>
-  
 
-  <script>
+
+    "use strict";
+
+    //React.render(React.createElement(CommentBox), document.getElementById('content'));
+    //ReactDOM.render(React.createElement(window.CommentBox, null), document.getElementById('content'));
+
 
     var _clientID = null;
     var _clientStatusHash = new Object();
@@ -312,8 +320,14 @@
 
       var socket = io("/");
       socket.on('connect', function() {
+
+        ReactDOM.render(
+          <CommentBox />,
+          document.getElementById('content')
+        );
+
         var jessionID = null;
-        jsessionID = GetCookie('JSESSIONID'); //http://msdn.microsoft.com/en-us/library/ms533693(v=vs.85).aspx
+        var jsessionID = GetCookie('JSESSIONID'); //http://msdn.microsoft.com/en-us/library/ms533693(v=vs.85).aspx
         console.log("Cookie: " + jsessionID);
         // This will generate a random number and send it, this is only a test for when users are properly setup
         // var max = 500, min = 10;
@@ -428,7 +442,7 @@
                 _clientProfileHash[thisTargeAdminID] = thisInnerProfileHash;
               }
             }
-          }           
+          }
         }
 
         if("clientstatus" in convData) {
@@ -729,8 +743,6 @@
         socket.emit('chatcreate', dataHash, jsessionID);
         $(this).prop("disabled", false);
       });
-
-
 
       addContact("1");
 
