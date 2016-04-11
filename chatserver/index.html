@@ -232,6 +232,7 @@
     });
 
     // tutorial2.js
+    /*
     var CommentList = React.createClass({
       render: function() {
         return (
@@ -242,6 +243,28 @@
         );
       }
     });
+    */
+
+
+
+    var CommentList = React.createClass({
+      render: function() {
+        var commentNodes = this.props.data.map(function(comment) {
+          return (
+            <Comment key={comment.conversationID} status={comment.status}>
+              //{comment.text}
+              "Adding some text"
+            </Comment>
+          );
+        });
+        return (
+          <div className="commentList">
+            {commentNodes}
+          </div>
+        );
+      }
+    });
+
 
     var CommentForm = React.createClass({
       render: function() {
@@ -259,7 +282,7 @@
         return (
           <div className="commentBox">
             <h1>Comments</h1>
-            <CommentList />
+            <CommentList data={this.props.data}/>
             <CommentForm />
           </div>
         );
@@ -321,10 +344,12 @@
       var socket = io("/");
       socket.on('connect', function() {
 
+        /*
         ReactDOM.render(
           <CommentBox />,
           document.getElementById('content')
         );
+        */
 
         var jessionID = null;
         var jsessionID = GetCookie('JSESSIONID'); //http://msdn.microsoft.com/en-us/library/ms533693(v=vs.85).aspx
@@ -431,10 +456,11 @@
 
         if("clientprofiles" in convData) {
           var thisClientProfArray = convData.clientprofiles;
-          console.log(thisClientProfArray);
+          console.log(thisClientProfArray.toString());
           for(var i = 0; i < thisClientProfArray.length; i++) {
+            //var thisClientProfHash = JSON.parse(thisClientProfArray[i]);
             var thisClientProfHash = JSON.parse(thisClientProfArray[i]);
-            console.log(thisClientProfHash);
+            console.log(thisClientProfHash.toString());
             if("profile" in thisClientProfHash) {
               var thisInnerProfileHash = thisClientProfHash.profile;
               if("sTarget_AdminID" in thisInnerProfileHash) {
@@ -469,13 +495,20 @@
           if("clientIDs" in convHash) {
             var clientIDs = convHash.clientIDs;
             var clientIDarray = clientIDs.split(",");
-            for(clientID in clientIDarray) {
+            for(var j = 0; j < clientIDarray.length; j++) {
+              var clientID = clientIDarray[j];
               if(clientID != _clientID) {
                 // the clientID doesn't belong to the client so is the other participant in the conv
               }
             }
           }
         }
+
+        console.log("About to generate convArray in reactjs");
+        ReactDOM.render(
+          <CommentBox data={convArray}/>,
+          document.getElementById('content')
+        );
 
       }
 
