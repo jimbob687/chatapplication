@@ -239,8 +239,16 @@
 
   <script src="https://npmcdn.com/redux@latest/dist/redux.min.js"></script>
 
+  <script src="https://npmcdn.com/redux@latest/dist/redux.min.js"></script>
+
 
   <script type="text/babel">
+
+    // Store binds together the 3 principals of redux
+    /*
+    const { createStore } = Redux;
+    const store = createStore(counter);
+    */
 
 
     console.log("About to do react stuff")
@@ -249,7 +257,7 @@
     var Comment = React.createClass({
 
       clickHandler: function clickHandler(e) {
-        console.log("Clicked a label");
+        console.log("Clicked a label, need to load up the messages dialog");
       },
 
       render: function() {
@@ -264,21 +272,6 @@
         );
       }
     });
-
-    // tutorial2.js
-    /*
-    var CommentList = React.createClass({
-      render: function() {
-        return (
-          <div className="commentList">
-            <Comment author="Pete Hunt">This is one comment</Comment>
-            <Comment author="Jordan Walke">This is *another* comment</Comment>
-          </div>
-        );
-      }
-    });
-    */
-
 
 
     var CommentList = React.createClass({
@@ -489,20 +482,33 @@
           convArray = convData.conv;
         }
 
+        // admindetails
         if("clientprofiles" in convData) {
+          //if("admindetails" in convData) {
           var thisClientProfArray = convData.clientprofiles;
+          //var thisClientProfArray = convData.admindetails;
           console.log("thisClientProfArray: " + JSON.stringify(thisClientProfArray));
           //console.log(thisClientProfArray.toString());
           for(var i = 0; i < thisClientProfArray.length; i++) {
             var thisClientProfHash = JSON.parse(thisClientProfArray[i]);
             //console.log("thisClientProfHash: " + JSON.stringify(thisClientProfHash));
-            if("profile" in thisClientProfHash) {
-              var thisInnerProfileHash = thisClientProfHash.profile;
+            //if("profile" in thisClientProfHash) {
+            if("admindetails" in thisClientProfHash) {
+              //var thisInnerProfileHash = thisClientProfHash.profile;
+              var thisInnerProfileHash = thisClientProfHash.admindetails;
               console.log("thisInnerProfileHash: " + JSON.stringify(thisInnerProfileHash));
-              if("sTarget_AdminID" in thisInnerProfileHash) {
-                var thisClientID = thisInnerProfileHash.sTarget_AdminID;
+              //if("sTarget_AdminID" in thisInnerProfileHash) {
+              if("clientid" in thisInnerProfileHash) {
+                //var thisClientID = thisInnerProfileHash.sTarget_AdminID;
+                var thisClientID = thisInnerProfileHash.clientid;
                 _clientProfileHash[thisClientID] = thisInnerProfileHash;
               }
+              else {
+                console.log("clientid not in thisInnerProfileHash");
+              }
+            }
+            else {
+              console.log("admindetails not in thisClientProfHash");
             }
           }
         }
@@ -525,16 +531,19 @@
               thisClientID = thisClientStatusHash.clientid;
 
               // This is set to 1 for now as have to fix up the api
-              //if(thisClientID in _clientProfileHash) {
-              if("1" in _clientProfileHash) {
-                //var thisClientProfileHash = _clientProfileHash[thisClientID];
-                var thisClientProfileHash = _clientProfileHash["1"];
-                if("sFirstName" in thisClientProfileHash) {
-                  thisClientStatusHash["firstname"] = thisClientProfileHash.sFirstName;
+              if(thisClientID in _clientProfileHash) {
+                //if("1" in _clientProfileHash)
+                var thisClientProfileHash = _clientProfileHash[thisClientID];
+                //var thisClientProfileHash = _clientProfileHash["1"];
+                if("firstname" in thisClientProfileHash) {
+                  thisClientStatusHash["firstname"] = thisClientProfileHash.firstname;
                 }
-                if("sLastName" in thisClientProfileHash) {
-                  thisClientStatusHash["lastname"] = thisClientProfileHash.sLastName;
+                if("lastname" in thisClientProfileHash) {
+                  thisClientStatusHash["lastname"] = thisClientProfileHash.lastname;
                 }
+              }
+              else {
+                console.log("thisClientID: " + thisClientID + " not found in _clientProfileHash");
               }
 
             }
