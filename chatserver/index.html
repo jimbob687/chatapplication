@@ -180,6 +180,31 @@
       margin-right: 0;
     }
 
+    .stat-offline {
+      /*color: #707070;*/
+      color: #009933;
+    }
+
+    .stat-online {
+      color: #009933;
+    }
+
+    .stat-busy {
+      color: #ff0000;
+    }
+
+    .chatclientdiv {
+      margin: 6px 3px 6px 2px;
+    }
+
+    .chatclientlabel {
+      margin: 0px 2px 0px 2px;
+    }
+
+    .chatclientlabel:hover {
+      cursor: pointer;
+    }
+
     </style>
   </head>
 
@@ -190,6 +215,8 @@
   <link rel="stylesheet" href="css/font-awesome.min.css">
 
   <link rel="stylesheet" href="css/jquery-ui-1.11.4.min.css">
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.1/css/font-awesome.min.css">
 
   <script src="/socket.io/socket.io.js"></script>
   <!--
@@ -210,6 +237,7 @@
   <!-- Taken from https://github.com/ro31337/jquery.ns-autogrow -->
   <!--<script src="js/jquery.ns-autogrow.min.js"></script>-->
 
+  <script src="https://npmcdn.com/redux@latest/dist/redux.min.js"></script>
 
 
   <script type="text/babel">
@@ -219,13 +247,19 @@
 
     // tutorial4.js
     var Comment = React.createClass({
+
+      clickHandler: function clickHandler(e) {
+        console.log("Clicked a label");
+      },
+
       render: function() {
+        var clientStatusClass = 'stat-' + this.props.clientstatus;  // will determine color of icon
+        var btnClass = 'fa fa-circle ' + clientStatusClass;
+
         return (
-          <div className="comment">
-            <h2 className="commentAuthor">
-              {this.props.lastname}
-            </h2>
-            {this.props.children}
+          <div className="chatclientdiv">
+            <i className={btnClass} aria-hidden="true"></i>
+            <label className="chatclientlabel" onClick={ this.clickHandler }>{this.props.firstname} {this.props.lastname}</label>
           </div>
         );
       }
@@ -251,7 +285,7 @@
       render: function() {
         var commentNodes = this.props.data.map(function(comment) {
           return (
-            <Comment key={comment.clientid} lastname={comment.browser}>
+            <Comment key={comment.clientid} firstname={comment.firstname} lastname={comment.lastname} clientstatus={comment.browser}>
               {comment.clientid}
               {comment.mobile}
             </Comment>
@@ -281,9 +315,8 @@
       render: function() {
         return (
           <div className="commentBox">
-            <h1>Comments</h1>
+            <h3>Chats</h3>
             <CommentList data={this.props.data}/>
-            <CommentForm />
           </div>
         );
       }
@@ -305,7 +338,7 @@
 
 
     var _clientID = null;
-    var _clientStatusHash = new Object();
+    //var _clientStatusHash = new Object();
     var _clientProfileHash = new Object();
 
 
@@ -458,20 +491,25 @@
 
         if("clientprofiles" in convData) {
           var thisClientProfArray = convData.clientprofiles;
-          console.log(thisClientProfArray.toString());
+          console.log("thisClientProfArray: " + JSON.stringify(thisClientProfArray));
+          //console.log(thisClientProfArray.toString());
           for(var i = 0; i < thisClientProfArray.length; i++) {
-            //var thisClientProfHash = JSON.parse(thisClientProfArray[i]);
             var thisClientProfHash = JSON.parse(thisClientProfArray[i]);
-            console.log("thisClientProfHash: " + JSON.stringify(thisClientProfHash));
-            if("admindetails" in thisClientProfHash) {
-              var thisInnerProfileHash = thisClientProfHash.admindetails;
-              if("clientid" in thisInnerProfileHash) {
-                var thisClientID = thisInnerProfileHash.clientid;
+            //console.log("thisClientProfHash: " + JSON.stringify(thisClientProfHash));
+            if("profile" in thisClientProfHash) {
+              var thisInnerProfileHash = thisClientProfHash.profile;
+              console.log("thisInnerProfileHash: " + JSON.stringify(thisInnerProfileHash));
+              if("sTarget_AdminID" in thisInnerProfileHash) {
+                var thisClientID = thisInnerProfileHash.sTarget_AdminID;
                 _clientProfileHash[thisClientID] = thisInnerProfileHash;
               }
             }
           }
         }
+        else {
+          console.log("clientprofiles not in convData");
+        }
+        console.log("Client profiles: " + JSON.stringify(_clientProfileHash))
 
         if("clientstatus" in convData) {
           var clientStatusArray = convData.clientstatus;
@@ -480,11 +518,27 @@
             var thisClientStatusHash = clientStatusArray[i];
             console.log("thisClientStatusHash: " + JSON.stringify(thisClientStatusHash));
             var thisClientID = null;
+
             if("clientid" in thisClientStatusHash) {
               // let's load up the global status hash
-              _clientStatusHash[thisClientStatusHash.clientID] = thisClientStatusHash;
-              statusArray.push(thisClientStatusHash);
+              //_clientStatusHash[thisClientStatusHash.clientID] = thisClientStatusHash;
+              thisClientID = thisClientStatusHash.clientid;
+
+              // This is set to 1 for now as have to fix up the api
+              //if(thisClientID in _clientProfileHash) {
+              if("1" in _clientProfileHash) {
+                //var thisClientProfileHash = _clientProfileHash[thisClientID];
+                var thisClientProfileHash = _clientProfileHash["1"];
+                if("sFirstName" in thisClientProfileHash) {
+                  thisClientStatusHash["firstname"] = thisClientProfileHash.sFirstName;
+                }
+                if("sLastName" in thisClientProfileHash) {
+                  thisClientStatusHash["lastname"] = thisClientProfileHash.sLastName;
+                }
+              }
+
             }
+            statusArray.push(thisClientStatusHash);
           }
         }
 
@@ -858,7 +912,7 @@
   <body>
 
     <!-- To keep information about rooms that the user is in -->
-    <div id="convwindow" class="chatdiv" style="width: 30%;">
+    <div id="convwindow" class="chatdiv" style="width: 30%; height: 100%; float: left;">
 
       <div id="loginform" class="tannfeloginform">
         <div id="loginerrordiv" class="tannfeerrordiv" style="width: 250px; height: 20px; float:left;" ></div>
@@ -890,7 +944,7 @@
     </div>
 
 
-    <div id="chatlistingdiv" class="chatdiv"  style="width: 200px;">
+    <div id="chatlistingdiv" class="chatdiv"  style="width: 200px; height: 100%; float: left;">
 
       <div id="covwindow" class="chatdiv"  style="width: 100%;">
 
@@ -995,14 +1049,14 @@
     </div>
 
 
-    <div id="chatwindow" class="chatdiv" style="width: 50%;">
+    <div id="chatwindow" class="chatdiv" style="width: 20%; height: 100%; float: left;">
       <ul id="messages"></ul>
       <div id="submitform">
         <input id="m" autocomplete="off" /><button id="submitbtn">Send</button>
       </div>
     </div>
 
-    <div id="content"></div>
+    <div id="content" style="width: 20%; height: 100%; float: left;"></div>
 
 
   </body>
